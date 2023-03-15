@@ -2,4 +2,7 @@ myenv/
 backups/
 dashboard/
 phase2/
+2023/
+dxstream/
 trello.py
+dockerfile
