@@ -1,0 +1,7 @@
+<settings>
+    <directories>
+        <project>/home/bioinf/george/pipeline_automation/</project>
+        <virtual_env>/home/bioinf/george/pipeline_automation/myenv</virtual_env>
+        <run_directory>/home/bioinf/george/pipeline_automation/*/*/*/</run_directory>
+    </directories>
+</settings>
