@@ -21,19 +21,19 @@ The project streamlines the process of generating and managing samplesheets for 
 ### Software Dependencies
 To run the project, ensure that you have the following software installed:
 
-Python 3.x: The project's scripts are written in Python 3, so a compatible version is required. Download and install Python 3.x from here.
+Python 3.x: The project's scripts are written in Python 3, so a compatible version is required. Download and install Python 3.x from [here](https://www.python.org/downloads/).
 
-Bash: The main script, monitor.sh, is a Bash script. Most Unix-based systems (including Linux and macOS) come with Bash pre-installed. Windows users can use Git Bash or the Windows Subsystem for Linux (WSL).
+Bash: The main script, monitor.sh, is a Bash script. Most Unix-based systems (including Linux and macOS) come with Bash pre-installed. Windows users can use [Git Bash](https://gitforwindows.org/) or the [Windows Subsystem for Linux (WSL)](https://docs.microsoft.com/en-us/windows/wsl/).
 
-openpyxl: A Python library used for reading and writing Excel files. Install it using pip:
+- openpyxl: A Python library used for reading and writing Excel files. Install it using pip:
 ```
 pip install openpyxl
 ```
-Illumina InterOp: A Python library for parsing Illumina run metrics. Install it using pip:
+- Illumina InterOp: A Python library for parsing Illumina run metrics. Install it using pip:
 ```
 pip install illumina-interop
 ```
-Virtual environment (optional): A virtual environment allows you to manage Python dependencies for the project separately, without affecting system-wide packages. Install virtualenv using pip:
+- Virtual environment (optional): A virtual environment allows you to manage Python dependencies for the project separately, without affecting system-wide packages. Install virtualenv using pip:
 ```
 pip install virtualenv
 ```
@@ -47,22 +47,53 @@ The project relies on a configuration file named settings.xml that stores inform
 Ensure that the input Excel files containing sample information are formatted correctly and placed in the appropriate directory as specified in settings.xml.
 
 ## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+1. Clone the repository: Clone the project's repository to your local machine by running the following command in your terminal or command prompt:
+```
+git clone https://gitlab.com/gdoy/dnanexus_illumina_automator.git
+```
+If you don't have Git installed, you can download the repository as a ZIP file and extract it.
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+2. Create a virtual environment (optional): If you prefer using a virtual environment to manage the project's dependencies, navigate to the project's root directory and create a new virtual environment by running:
+```
+virtualenv venv
+```
+3. Activate the virtual environment:
+
+On Linux and macOS:
+```
+source venv/bin/activate
+```
+On Windows:
+```
+venv\Scripts\activate
+```
+4. Install Python dependencies: Install the required Python libraries by running the following command:
+```
+pip install openpyxl illumina-interop
+```
+5. Configure settings.xml: Open the settings.xml file in a text editor and update the values for <project>, <virtual_env>, and <run_directory> according to your system and project setup.
+
+6. Prepare input files: Ensure that the input Excel files containing sample information are formatted correctly and placed in the appropriate directory as specified in settings.xml.
+
+7. Run the project: You can now run the main script monitor.sh from your terminal or command prompt:
+```
+bash monitor.sh
+```
+The script will start monitoring the specified run directory, generate SampleSheets, poll for RTA completion, and launch the pipeline using create_inputs.py.
 
 ## Workflow
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+![Image](workflow.png)
 
 ## Troubleshooting
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+You can refer to the monitor.log file to check console output for error messages.
 
 ## Contributors
 George Doyle (developer)
 
 ## License
+This project is released under the [MIT License](https://opensource.org/licenses/MIT). This license grants you permission to use, modify, and distribute the software for any purpose, including commercial use, without any restrictions or limitations. The software is provided "as is" without warranty of any kind, either express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement.
 
+By using this project, you agree to the terms of the MIT License.
 
 ## Changelog
 
