@@ -10,8 +10,8 @@ import os
 import zipfile
 import subprocess
 
-# load workbook and ensure it is valid
 def load_workbook(excel_file):
+    """Load workbook and ensure it is valid."""
     try:
         workbook = openpyxl.load_workbook(excel_file, data_only=True)
     except zipfile.BadZipFile:
@@ -19,15 +19,15 @@ def load_workbook(excel_file):
         return None
     return workbook
 
-# check for Roche run
 def check_hcap_sheet(workbook):
+    """Check for Roche run."""
     for sheet_name in workbook.sheetnames:
         if "HCAP" in sheet_name:
             return True
     return False
 
-# output TSO csv files
 def write_csv(sheet, output_dir, file_name):
+    """Write out to csv file."""
     with open(os.path.join(output_dir, file_name), "w", newline="") as csvfile:
         csvwriter = csv.writer(csvfile)
         for row in sheet.iter_rows(values_only=True):
@@ -37,8 +37,8 @@ def write_csv(sheet, output_dir, file_name):
                     continue
                 csvwriter.writerow(row)
 
-# output the roche combined csv
 def generate_roche_combined_csv(workbook, excel_file):
+    """Create the combined csv required for Roche samplesheet."""
     if "Combined Sample sheet" in workbook.sheetnames:
         worksheet = workbook["Combined Sample sheet"]
         output_dir = os.path.dirname(excel_file)
@@ -50,8 +50,8 @@ def generate_roche_combined_csv(workbook, excel_file):
         print("Error: Sheet Combined Sample sheet not found in workbook {}. Skipping...".format(excel_file))
         return None
 
-# call split_somatic_samplesheet within the relevant directory, move back after
 def call_split_somatic_samplesheet_script(combined_csv_path):
+    """Call split_somatic_samplesheet within the relevant directory, chdir back to origin."""
     if os.path.isfile(combined_csv_path):
         split_somatic_samplesheet_path = os.path.abspath("split_somatic_samplesheet.py")
         output_dir = os.path.dirname(combined_csv_path)
@@ -61,8 +61,8 @@ def call_split_somatic_samplesheet_script(combined_csv_path):
         subprocess.run(["python3", split_somatic_samplesheet_path, "-s", combined_csv_path])
         os.chdir(original_dir)
 
-# generate the tso500 samplesheets with correct formatting
 def generate_tso500_samplesheets(workbook, excel_file):
+    """Generate the tso500 samplesheets with correct formatting."""
     suffix_map = {
         'TSO500 Combined Loading': '_combined',
         'TSO500 DNA Loading': '_DNA',
@@ -79,14 +79,13 @@ def generate_tso500_samplesheets(workbook, excel_file):
         file_name = worksheet['B4'].value + suffix_map[sheet_name] + '.csv'
         write_csv(worksheet, output_dir, file_name)
 
-# add a flag.txt to the directory
 def create_flag_file(excel_file):
+    """Add a flag.txt to the directory."""
     flag_file = os.path.join(os.path.dirname(excel_file), "flag.txt")
     with open(flag_file, "w") as f:
         pass
     print("Flag file created for {}.".format(excel_file))
 
-# run the entire script
 def main():
     excel_file = os.path.abspath(sys.argv[1])
     workbook = load_workbook(excel_file)
@@ -103,6 +102,5 @@ def main():
         create_flag_file(excel_file)
         print("Samplesheets generated: {}.".format(excel_file))
 
-# call if run from command line
 if __name__ == "__main__":
     main()
