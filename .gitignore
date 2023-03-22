@@ -3,6 +3,7 @@ backups/
 dashboard/
 phase2/
 2023/
+tests/
 dxstream/
 trello.py
 dockerfile
