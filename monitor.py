@@ -1,26 +1,106 @@
-# Developed by George
-# 14/02/2023
-
-# Script designed to poll for changes in technical directory, generate SampleSheets in appropriate directory, 
-# poll for RTA completion, and launch pipeline via create_inputs.py
-
 import os
 import glob
 import subprocess
+import sqlite3
+import time
+import openpyxl
+import re
+
+DB_PATH = 'db/pipemanager.db'
+
+def setup_database():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS run_status (
+            id INTEGER PRIMARY KEY,
+            run_id INTEGER,
+            dirpath TEXT,
+            stage INTEGER,
+            output_dir TEXT,
+            status TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def update_run_status(dirpath, stage, status, run_id=None, output_dir=None):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        INSERT OR REPLACE INTO run_status (id, run_id, dirpath, stage, output_dir, status)
+        VALUES (
+            (SELECT id FROM run_status WHERE dirpath = ?),
+            COALESCE(?, (SELECT run_id FROM run_status WHERE dirpath = ?)),
+            ?,
+            ?,
+            COALESCE(?, (SELECT output_dir FROM run_status WHERE dirpath = ?)),
+            ?
+        )
+    ''', (dirpath, run_id, dirpath, dirpath, stage, output_dir, dirpath, status))
+    
+    conn.commit()
+    conn.close()
+
+
+def get_run_status(dirpath):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT stage, output_dir, status FROM run_status WHERE dirpath = ?', (dirpath,))
+    result = cursor.fetchone()
+    
+    conn.close()
+    
+    if result:
+        return {'stage': result[0], 'output_dir': result[1], 'status': result[2]}
+    else:
+        return None
 
 def find_new_files(dirpath):
     return glob.glob(os.path.join(dirpath, '*.xlsx'))
 
-def process_flag_file(dirpath, file):
-    print(f'flag.txt detected in {dirpath}')
-    subprocess.run(['python3', 'ssmove.py', file], check=True)
+def validate_xlsx_file(file):
+    try:
+        workbook = openpyxl.load_workbook(file)
+        # Add your validation logic here
+        # ...
+        return True
+    except (openpyxl.utils.exceptions.InvalidFileException, Exception) as e:
+        print(f"Error reading xlsx file: {e}")
+        return False
 
-def process_move_file(dirpath, file):
-    print(f'move.txt detected in {dirpath}')
+def process_stage1(dirpath, file):
+    print(f"Processing Stage 1 for {dirpath}")
+
+    # Add a validation function to check the validity of the xlsx file.
+    if not validate_xlsx_file(file):
+        print(f"Invalid xlsx file: {file}. Skipping the directory.")
+        return
+
+    # Process the file
+    subprocess.run(['python3', 'ssgen.py', file], check=True)
+
+    # Extract the run_id from the directory name
+    run_id = re.search(r"(\d+)", os.path.basename(dirpath))
+
+    # Update the status in the database
+    update_run_status(dirpath, 2, 'waiting', run_id)
+
+def process_stage2(dirpath, file):
+    print(f'Processing Stage 2 in {dirpath}')
+    subprocess.run(['python3', 'ssmove.py', file], check=True)
+    update_run_status(dirpath, 3, 'waiting')
+
+def process_stage3(dirpath, file):
+    print(f'Processing Stage 3 in {dirpath}')
     with open(os.path.join(dirpath, 'move.txt'), 'r') as f:
         output_dir = f.read().strip()
 
     if os.path.isfile(os.path.join(output_dir, 'pipeline.launch')):
+        print('Pipeline launched.') #debug
         return
     elif os.path.isfile(os.path.join(output_dir, 'qc.pass')):
         subprocess.run(['yes', 'Y'], check=True)
@@ -29,21 +109,36 @@ def process_move_file(dirpath, file):
     elif os.path.isfile(os.path.join(output_dir, 'RTAComplete.txt')):
         subprocess.run(['python3', 'q_scrape.py', output_dir, dirpath], check=True)
 
-def process_file_without_flag_or_move(file):
-    filename = os.path.basename(file)
-    subprocess.run(['python3', 'ssgen.py', file], check=True)
+    update_run_status(dirpath, None, 'completed')
 
 def main():
-    for dirpath in glob.glob('/home/bioinf/george/pipeline_automation/*/*/*/', recursive=True):
-        new_files = find_new_files(dirpath)
+    setup_database()
+    
+    search_path = '/home/bioinf/george/pipeline_automation/*/*/*/'
+    
+    while True:
+        directories = glob.glob(search_path, recursive=True)
         
-        for file in new_files:
-            if os.path.isfile(os.path.join(dirpath, 'flag.txt')):
-                process_flag_file(dirpath, file)
-            elif os.path.isfile(os.path.join(dirpath, 'move.txt')):
-                process_move_file(dirpath, file)
-            else:
-                process_file_without_flag_or_move(file)
+        for dirpath in directories:
+            run_status = get_run_status(dirpath)
+            new_files = find_new_files(dirpath)
+            
+            if not new_files:
+                continue
+
+            file = new_files[0]
+
+            if run_status is None:
+                # New directory, start processing Stage 1
+                process_stage1(dirpath, file)
+            elif run_status['stage'] == 1 and run_status['status'] == 'waiting':
+                process_stage1(dirpath, file)
+            elif run_status['stage'] == 2 and run_status['status'] == 'waiting':
+                process_stage2(dirpath, file)
+            elif run_status['stage'] == 3 and run_status['status'] == 'waiting':
+                process_stage3(dirpath, file)
+        
+        time.sleep(10)  # Check for new directories every 10 seconds
 
 if __name__ == '__main__':
     main()

@@ -7,3 +7,5 @@ tests/
 dxstream/
 trello.py
 dockerfile
+clear.py
+monitor.sh
