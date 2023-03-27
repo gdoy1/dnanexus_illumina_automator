@@ -138,8 +138,7 @@ def main():
             if run_status is None:
                 # New directory, start processing Stage 1
                 process_stage1(dirpath, file)
-            #elif run_status['stage'] == 1 and run_status['status'] == 'waiting':
-            #    process_stage1(dirpath, file)
+
             elif run_status['stage'] == 2:
                 process_stage2(dirpath, file)
             elif run_status['stage'] == 3:

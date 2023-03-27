@@ -9,6 +9,7 @@ import openpyxl
 import shutil
 import xml.etree.ElementTree as ET
 import glob
+import sqlite3
 
 def parse_settings(settings_file):
     """Parse settings.xml, return the root element."""
@@ -31,6 +32,16 @@ def find_matching_run_params_file(runs_dir, search_string):
                 output_dir = os.path.dirname(run_params_file)
                 break
     return run_params_file, output_dir
+
+def update_run_status_output_dir(search_string, output_dir):
+    DB_PATH = 'db/pipemanager.db'
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute('UPDATE run_status SET output_dir = ? WHERE run_id = ?', (output_dir, int(search_string)))
+    conn.commit()
+    conn.close()
+
 
 def move_csv_files(excel_file, output_dir):
     """Move csv files to the output_dir."""
@@ -58,6 +69,7 @@ def main(excel_file, search_string):
     if output_dir is not None:
         move_csv_files(excel_file, output_dir)
         rename_and_store_flag_file(excel_file, output_dir)
+        update_run_status_output_dir(search_string, output_dir)
     else:
         print(f'Error: Matching RunParameters.xml file not found for search string "{search_string}"')
 
