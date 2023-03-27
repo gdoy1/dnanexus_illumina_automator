@@ -93,13 +93,13 @@ def process_stage1(dirpath, file):
         return
 
     # Update the status in the database
-    update_run_status(dirpath, 2, 'waiting', run_id)
+    update_run_status(dirpath, 2, 'SampleSheet generated', run_id)
 
 def process_stage2(dirpath, file):
     print(f'Processing Stage 2 in {dirpath}')
     run_id = get_run_status(dirpath)['run_id']
     subprocess.run(['python3', 'ssmove.py', file, str(run_id)], check=True)
-    update_run_status(dirpath, 3, 'waiting')
+    update_run_status(dirpath, 3, 'Sequencing in progress')
 
 def process_stage3(dirpath, file):
     print(f'Processing Stage 3 in {dirpath}')
@@ -138,11 +138,11 @@ def main():
             if run_status is None:
                 # New directory, start processing Stage 1
                 process_stage1(dirpath, file)
-            elif run_status['stage'] == 1 and run_status['status'] == 'waiting':
-                process_stage1(dirpath, file)
-            elif run_status['stage'] == 2 and run_status['status'] == 'waiting':
+            #elif run_status['stage'] == 1 and run_status['status'] == 'waiting':
+            #    process_stage1(dirpath, file)
+            elif run_status['stage'] == 2:
                 process_stage2(dirpath, file)
-            elif run_status['stage'] == 3 and run_status['status'] == 'waiting':
+            elif run_status['stage'] == 3:
                 process_stage3(dirpath, file)
         
         time.sleep(30)  # Check for new directories every 30 seconds
