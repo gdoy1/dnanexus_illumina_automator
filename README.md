@@ -23,8 +23,6 @@ To run the project, ensure that you have the following software installed:
 
 Python 3.x: The project's scripts are written in Python 3, so a compatible version is required. Download and install Python 3.x from [here](https://www.python.org/downloads/).
 
-Bash: The main script, monitor.sh, is a Bash script. Most Unix-based systems (including Linux and macOS) come with Bash pre-installed. Windows users can use [Git Bash](https://gitforwindows.org/) or the [Windows Subsystem for Linux (WSL)](https://docs.microsoft.com/en-us/windows/wsl/).
-
 - openpyxl: A Python library used for reading and writing Excel files. Install it using pip:
 ```
 pip install openpyxl

@@ -48,14 +48,11 @@ def rename_and_store_flag_file(excel_file, output_dir):
         with open(os.path.join(os.path.dirname(excel_file), 'move.txt'), 'a') as f:
             f.write(f'{output_dir}\n')
 
-def main(excel_file):
+def main(excel_file, search_string):
     settings_file = 'settings.xml'
     settings_root = parse_settings(settings_file)
     runs_dir = settings_root.find('directories/RTA_directory').text
 
-    workbook = openpyxl.load_workbook(excel_file, data_only=True)
-    worksheet = workbook['TSO500 Combined Loading']
-    search_string = worksheet['B4'].value
     run_params_file, output_dir = find_matching_run_params_file(runs_dir, search_string)
 
     if output_dir is not None:
@@ -66,4 +63,5 @@ def main(excel_file):
 
 if __name__ == "__main__":
     excel_file = sys.argv[1]
-    main(excel_file)
+    search_string = sys.argv[2]
+    main(excel_file, search_string)

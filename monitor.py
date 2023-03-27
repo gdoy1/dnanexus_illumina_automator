@@ -48,14 +48,14 @@ def update_run_status(dirpath, stage, status, run_id=None, output_dir=None):
 def get_run_status(dirpath):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    
-    cursor.execute('SELECT stage, output_dir, status FROM run_status WHERE dirpath = ?', (dirpath,))
+
+    cursor.execute('SELECT run_id, stage, output_dir, status FROM run_status WHERE dirpath = ?', (dirpath,))
     result = cursor.fetchone()
-    
+
     conn.close()
-    
+
     if result:
-        return {'stage': result[0], 'output_dir': result[1], 'status': result[2]}
+        return {'run_id': result[0], 'stage': result[1], 'output_dir': result[2], 'status': result[3]}
     else:
         return None
 
@@ -97,7 +97,8 @@ def process_stage1(dirpath, file):
 
 def process_stage2(dirpath, file):
     print(f'Processing Stage 2 in {dirpath}')
-    subprocess.run(['python3', 'ssmove.py', file], check=True)
+    run_id = get_run_status(dirpath)['run_id']
+    subprocess.run(['python3', 'ssmove.py', file, str(run_id)], check=True)
     update_run_status(dirpath, 3, 'waiting')
 
 def process_stage3(dirpath, file):
