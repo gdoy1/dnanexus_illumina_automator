@@ -144,7 +144,7 @@ def main():
             elif run_status['stage'] == 3 and run_status['status'] == 'waiting':
                 process_stage3(dirpath, file)
         
-        time.sleep(10)  # Check for new directories every 10 seconds
+        time.sleep(30)  # Check for new directories every 30 seconds
 
 if __name__ == '__main__':
     main()

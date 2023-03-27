@@ -1,11 +1,11 @@
 # dnanexus_illumina_automator
 
 ## Description
-This project consists of a set of Python and Bash scripts designed to automate the process of generating, moving, and quality checking samplesheets for Illumina-based sequencing runs. The main script, monitor.sh, is responsible for coordinating the entire process by polling for changes in the technical directory, generating samplesheets, and launching the pipeline using create_inputs.py.
+This project consists of a set of Python scripts designed to automate the process of generating, moving, and quality checking samplesheets for Illumina-based sequencing runs. The main script, monitor.py, is responsible for coordinating the entire process by polling for changes in the technical directory, generating samplesheets, and launching the pipeline using create_inputs.py.
 
 Key components of the project:
 
-- monitor.sh: The main script that manages the workflow and executes other scripts as needed.
+- monitor.py: The main script that manages the workflow and executes other scripts as needed.
 
 - settings.xml: A configuration file that stores variables such as project, virtual environment path, and run directory.
 
@@ -75,9 +75,9 @@ pip install openpyxl illumina-interop
 
 6. Prepare input files: Ensure that the input Excel files containing sample information are formatted correctly and placed in the appropriate directory as specified in settings.xml.
 
-7. Run the project: You can now run the main script monitor.sh from your terminal or command prompt:
+7. Run the project: You can now run the main script monitor.py from your terminal or command prompt:
 ```
-bash monitor.sh
+python3 monitor.py
 ```
 The script will start monitoring the specified run directory, generate SampleSheets, poll for RTA completion, and launch the pipeline using create_inputs.py.
 
@@ -91,9 +91,9 @@ You can refer to the monitor.log file to check console output for error messages
 George Doyle (developer)
 
 ## License
-This project is released under the [MIT License](https://opensource.org/licenses/MIT). This license grants you permission to use, modify, and distribute the software for any purpose, including commercial use, without any restrictions or limitations. The software is provided "as is" without warranty of any kind, either express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement.
+The software is provided "as is" without warranty of any kind, either express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement.
 
-By using this project, you agree to the terms of the MIT License.
+By using this project, you agree to the terms of the [MIT License](https://opensource.org/licenses/MIT).
 
 ## Changelog
 
