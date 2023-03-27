@@ -84,7 +84,13 @@ def process_stage1(dirpath, file):
     subprocess.run(['python3', 'ssgen.py', file], check=True)
 
     # Extract the run_id from the directory name
-    run_id = re.search(r"(\d+)", os.path.basename(dirpath))
+    basename = os.path.normpath(dirpath).split(os.sep)[-1]
+    run_id_match = re.search(r"(\d+)", basename)
+    if run_id_match is not None:
+        run_id = run_id_match.group()
+    else:
+        print(f"Failed to extract run_id from directory name: {dirpath}. Skipping the directory.")
+        return
 
     # Update the status in the database
     update_run_status(dirpath, 2, 'waiting', run_id)
