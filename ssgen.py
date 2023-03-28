@@ -79,13 +79,6 @@ def generate_tso500_samplesheets(workbook, excel_file):
         file_name = worksheet['B4'].value + suffix_map[sheet_name] + '.csv'
         write_csv(worksheet, output_dir, file_name)
 
-def create_flag_file(excel_file):
-    """Add a flag.txt to the directory."""
-    flag_file = os.path.join(os.path.dirname(excel_file), "flag.txt")
-    with open(flag_file, "w") as f:
-        pass
-    print("Flag file created for {}.".format(excel_file))
-
 def main():
     excel_file = os.path.abspath(sys.argv[1])
     workbook = load_workbook(excel_file)
@@ -96,10 +89,8 @@ def main():
         combined_csv = generate_roche_combined_csv(workbook, excel_file)
         if combined_csv is not None:
             call_split_somatic_samplesheet_script(os.path.join(os.path.dirname(excel_file), combined_csv))
-        create_flag_file(excel_file)
     else:
         generate_tso500_samplesheets(workbook, excel_file)
-        create_flag_file(excel_file)
         print("Samplesheets generated: {}.".format(excel_file))
 
 if __name__ == "__main__":

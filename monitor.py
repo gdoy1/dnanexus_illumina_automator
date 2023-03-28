@@ -1,3 +1,9 @@
+# Developed by George
+# 20/03/2023
+
+# Script designed to poll for changes in technical directory, generate SampleSheets in appropriate directory, 
+# poll for RTA completion, and launch pipeline via create_inputs.py
+
 import os
 import glob
 import subprocess
