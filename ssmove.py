@@ -42,7 +42,6 @@ def update_run_status_output_dir(search_string, output_dir):
     conn.commit()
     conn.close()
 
-
 def move_csv_files(excel_file, output_dir):
     """Move csv files to the output_dir."""
     excel_dir = os.path.dirname(excel_file)
@@ -50,14 +49,6 @@ def move_csv_files(excel_file, output_dir):
         if file_name.endswith('.csv'):
             shutil.move(os.path.join(excel_dir, file_name), os.path.join(output_dir, file_name))
     print(f'Moved CSV files from {excel_dir} to {output_dir}')
-
-def rename_and_store_flag_file(excel_file, output_dir):
-    """Rename flag.txt to move.txt, store output_dir inside."""
-    flag_file = os.path.join(os.path.dirname(excel_file), 'flag.txt')
-    if os.path.exists(flag_file):
-        os.rename(flag_file, os.path.join(os.path.dirname(excel_file), 'move.txt'))
-        with open(os.path.join(os.path.dirname(excel_file), 'move.txt'), 'a') as f:
-            f.write(f'{output_dir}\n')
 
 def main(excel_file, search_string):
     settings_file = 'settings.xml'
@@ -68,7 +59,6 @@ def main(excel_file, search_string):
 
     if output_dir is not None:
         move_csv_files(excel_file, output_dir)
-        rename_and_store_flag_file(excel_file, output_dir)
         update_run_status_output_dir(search_string, output_dir)
     else:
         print(f'Error: Matching RunParameters.xml file not found for search string "{search_string}"')

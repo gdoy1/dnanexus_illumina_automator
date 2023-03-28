@@ -6,6 +6,8 @@ import time
 import openpyxl
 import re
 import dxpy
+import pytz
+from datetime import datetime
 
 DB_PATH = 'db/pipemanager.db'
 
@@ -20,43 +22,64 @@ def setup_database():
             dirpath TEXT,
             stage INTEGER,
             output_dir TEXT,
-            status TEXT
+            status TEXT,
+            job_id TEXT
         )
     ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS last_check (
+            id INTEGER PRIMARY KEY,
+            timestamp TEXT
+        )
+    ''')
+
     conn.commit()
     conn.close()
-
-def update_run_status(dirpath, stage, status, run_id=None, output_dir=None):
+    
+def update_run_status(dirpath, stage, status, run_id=None, output_dir=None, job_id=None):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    
+
     cursor.execute('''
-        INSERT OR REPLACE INTO run_status (id, run_id, dirpath, stage, output_dir, status)
+        INSERT OR REPLACE INTO run_status (id, run_id, dirpath, stage, output_dir, status, job_id)
         VALUES (
             (SELECT id FROM run_status WHERE dirpath = ?),
             COALESCE(?, (SELECT run_id FROM run_status WHERE dirpath = ?)),
             ?,
             ?,
             COALESCE(?, (SELECT output_dir FROM run_status WHERE dirpath = ?)),
-            ?
+            ?,
+            COALESCE(?, (SELECT job_id FROM run_status WHERE dirpath = ?))
         )
-    ''', (dirpath, run_id, dirpath, dirpath, stage, output_dir, dirpath, status))
+    ''', (dirpath, run_id, dirpath, dirpath, stage, output_dir, dirpath, status, job_id, dirpath))
     
     conn.commit()
     conn.close()
 
+def update_last_check():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    tz = pytz.timezone('Europe/London')
+    now = datetime.now(tz)
+    timestamp = now.strftime('%d-%m-%Y %H:%M:%S')
+
+    cursor.execute("INSERT OR REPLACE INTO last_check (id, timestamp) VALUES (1, ?)", (timestamp,))
+    conn.commit()
+    conn.close()
 
 def get_run_status(dirpath):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    cursor.execute('SELECT run_id, stage, output_dir, status FROM run_status WHERE dirpath = ?', (dirpath,))
+    cursor.execute('SELECT run_id, stage, output_dir, status, job_id FROM run_status WHERE dirpath = ?', (dirpath,))
     result = cursor.fetchone()
 
     conn.close()
 
     if result:
-        return {'run_id': result[0], 'stage': result[1], 'output_dir': result[2], 'status': result[3]}
+        return {'run_id': result[0], 'stage': result[1], 'output_dir': result[2], 'status': result[3], 'job_id': result[4]}
     else:
         return None
 
@@ -80,7 +103,7 @@ def get_dx_job_status(basename, project_id):
     for job in dxpy.find_jobs(project=project_id):
         job_desc = dxpy.DXJob(job['id']).describe()
         if basename in str(job_desc['folder']):
-            return job_desc['state']
+            return job_desc['state'], job_desc['id']
     return None
 
 def process_stage1(dirpath, file):
@@ -124,14 +147,14 @@ def process_stage3(dirpath, file):
     if os.path.isfile(os.path.join(output_dir, 'RTAComplete.txt')):
         basename = os.path.basename(output_dir)
         # Run get_dx_job_status using the 'landing' directory as the base
-        job_state = get_dx_job_status(basename, 'project-G20fB684yYBbqfXFBvGvzgXV')
+        job_state, job_id = get_dx_job_status(basename, 'project-G20fB684yYBbqfXFBvGvzgXV')
 
         if job_state == 'done':
             print(f"Demultiplex for run {run_id} is complete. Proceeding to analysis.")
-            update_run_status(dirpath, 4, 'Demultiplexing complete')
+            update_run_status(dirpath, 4, 'Demultiplexing complete', job_id=job_id)
         else:
             print(f"Demultiplex for {run_id} is not complete. Current state: {job_state}")
-            update_run_status(dirpath, 3, 'Demultiplex in progress')
+            update_run_status(dirpath, 3, 'Demultiplex in progress', job_id=job_id)
     else:
         print(f'RTA in progress: {dirpath}')
 
@@ -182,7 +205,7 @@ def main():
             elif run_status['stage'] == 4:
                 process_stage4(dirpath, file)
 
-        
+        update_last_check() # Update the database to reflect check has taken place
         time.sleep(30)  # Check for new directories every 30 seconds
 
 if __name__ == '__main__':

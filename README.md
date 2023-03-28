@@ -94,4 +94,4 @@ The software is provided "as is" without warranty of any kind, either express or
 By using this project, you agree to the terms of the [MIT License](https://opensource.org/licenses/MIT).
 
 ## Changelog
-
+1.01 (28/03/2023) - Script now dependent on SQLite checks. Flask dashboard added. DNAnexus polling for demultiplex completion.

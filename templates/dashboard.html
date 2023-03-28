@@ -18,7 +18,8 @@
               <th>Dirpath</th>
               <th>Stage</th>
               <th>Output Dir</th>
-              <th>Status</th>
+              <th style="font-weight:bold;">Status</th>
+              <th>Demux ID</th>
             </tr>
           </thead>
           <tbody>
@@ -29,12 +30,14 @@
               <td>{{ row[2] }}</td>
               <td>{{ row[3] }}</td>
               <td>{{ row[4] }}</td>
-              <td>{{ row[5] }}</td>
+              <td style="font-weight:bold;">{{ row[5] }}</td>
+              <td>{{ row[6] }}</td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
+      <p class="text-center" style="font-size: 0.8rem;">Last check: {{ last_check }}</p>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
