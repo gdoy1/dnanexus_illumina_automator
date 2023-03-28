@@ -5,6 +5,7 @@ import sqlite3
 import time
 import openpyxl
 import re
+import dxpy
 
 DB_PATH = 'db/pipemanager.db'
 
@@ -72,7 +73,18 @@ def validate_xlsx_file(file):
         print(f"Error reading xlsx file: {e}")
         return False
 
+def get_dx_job_status(basename, project_id):
+    '''Scrape the DNAnexus API for run status - IMPORTANT - REMOVE API TOKEN BEFORE MAKING REPO LIVE'''
+    dxpy.set_security_context({"auth_token_type": "Bearer", "auth_token": "wWPpJGA9jPho4RjpOuzrGBAktQXCzVHf"})
+    
+    for job in dxpy.find_jobs(project=project_id):
+        job_desc = dxpy.DXJob(job['id']).describe()
+        if basename in str(job_desc['folder']):
+            return job_desc['state']
+    return None
+
 def process_stage1(dirpath, file):
+    '''Scan for new run_folders, check for a valid xlsx'''
     print(f"Processing Stage 1 for {dirpath}")
 
     # Add a validation function to check the validity of the xlsx file.
@@ -96,13 +108,37 @@ def process_stage1(dirpath, file):
     update_run_status(dirpath, 2, 'SampleSheet generated', run_id)
 
 def process_stage2(dirpath, file):
+    '''Move the SampleSheets to the correct location before dxstream begins'''
     print(f'Processing Stage 2 in {dirpath}')
     run_id = get_run_status(dirpath)['run_id']
     subprocess.run(['python3', 'ssmove.py', file, str(run_id)], check=True)
-    update_run_status(dirpath, 3, 'Sequencing in progress')
+    update_run_status(dirpath, 3, 'RTA in progress')
 
 def process_stage3(dirpath, file):
-    print(f'Processing Stage 3 in {dirpath}')
+    '''Check RTA has completed, then begin polling for demultiplex status'''
+    print(f'Processing Stage 3 (demultiplex) in {dirpath}')
+    run_status = get_run_status(dirpath)
+    run_id = run_status['run_id']
+    output_dir = run_status['output_dir']
+
+    if os.path.isfile(os.path.join(output_dir, 'RTAComplete.txt')):
+        basename = os.path.basename(output_dir)
+        # Run get_dx_job_status using the 'landing' directory as the base
+        job_state = get_dx_job_status(basename, 'project-G20fB684yYBbqfXFBvGvzgXV')
+
+        if job_state == 'done':
+            print(f"Demultiplex for run {run_id} is complete. Proceeding to analysis.")
+            update_run_status(dirpath, 4, 'Demultiplexing complete')
+        else:
+            print(f"Demultiplex for {run_id} is not complete. Current state: {job_state}")
+            update_run_status(dirpath, 3, 'Demultiplex in progress')
+    else:
+        print(f'RTA in progress: {dirpath}')
+
+
+def process_stage4(dirpath, file):
+    '''Demultiplex complete, ensure the QC is valid before launching analysis'''
+    print(f'Processing Stage 4 (analysis) in {dirpath}')
     with open(os.path.join(dirpath, 'move.txt'), 'r') as f:
         output_dir = f.read().strip()
 
@@ -116,7 +152,7 @@ def process_stage3(dirpath, file):
     elif os.path.isfile(os.path.join(output_dir, 'RTAComplete.txt')):
         subprocess.run(['python3', 'q_scrape.py', output_dir, dirpath], check=True)
 
-    update_run_status(dirpath, None, 'completed')
+    update_run_status(dirpath, None, 'Run completed')
 
 def main():
     setup_database()
@@ -143,6 +179,9 @@ def main():
                 process_stage2(dirpath, file)
             elif run_status['stage'] == 3:
                 process_stage3(dirpath, file)
+            elif run_status['stage'] == 4:
+                process_stage4(dirpath, file)
+
         
         time.sleep(30)  # Check for new directories every 30 seconds
 
