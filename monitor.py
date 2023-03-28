@@ -139,6 +139,16 @@ def get_dx_job_status(basename, project_id):
             return job_desc['state'], job_desc['id']
     return None
 
+def get_dx_analysis_status(basename, project_id):
+    '''Scrape the DNAnexus API for run status - IMPORTANT - REMOVE API TOKEN BEFORE MAKING REPO LIVE'''
+    dxpy.set_security_context({"auth_token_type": "Bearer", "auth_token": "wWPpJGA9jPho4RjpOuzrGBAktQXCzVHf"})
+    
+    for analysis in dxpy.find_analyses(project=project_id, no_parent_job=True, include_subjobs=False):
+        analysis_desc = dxpy.DXAnalysis(analysis['id']).describe()
+        if basename in str(analysis_desc['folder']):
+            return analysis_desc['state'], analysis_desc['id']
+    return None
+
 def process_stage1(dirpath, file):
     '''Scan for new run_folders, check for a valid xlsx'''
     print(f"Processing Stage 1 for {dirpath}")
@@ -171,7 +181,7 @@ def process_stage2(dirpath, file):
     update_run_status(dirpath, 3, 'RTA in progress')
 
 def process_stage3(dirpath, file):
-    '''Check RTA has completed, then begin polling for demultiplex status'''
+    '''Check RTA has completed, then begin polling for demultiplex status using DNAnexus API'''
     print(f'Processing Stage 3 (demultiplex) in {dirpath}')
     run_status = get_run_status(dirpath)
     run_id = run_status['run_id']
@@ -203,7 +213,7 @@ def process_stage4(dirpath, file):
 
 def process_stage5(dirpath, file):
     '''Ensure the QC is valid before launching analysis'''
-    print(f'Processing Stage 5 (analysis) in {dirpath}')
+    print(f'Processing Stage 5 (launch analysis) in {dirpath}')
     run_status = get_run_status(dirpath)
     output_dir = run_status['output_dir']
     run_id = run_status['run_id']
@@ -221,6 +231,23 @@ def process_stage5(dirpath, file):
         return
 
     #update_run_status(dirpath, None, 'Run completed')
+
+def process_stage6(dirpath, file):
+    '''Begin polling for analysis status using DNAnexus API'''
+    print(f'Processing Stage 6 (check analysis) in {dirpath}')
+    run_status = get_run_status(dirpath)
+    run_id = run_status['run_id']
+    output_dir = run_status['output_dir']
+    basename = os.path.basename(output_dir)
+    # Run get_dx_job_status using the 'landing' directory as the base
+    job_state, job_id = get_dx_analysis_status(basename, 'project-G20fJgQ4V6pqf5GqFF4ZZfGV')
+
+    if job_state == 'done':
+        print(f"Analysis for run {run_id} is complete.")
+        update_run_status(dirpath, 7, 'Analysis complete', job_id=job_id)
+    else:
+        print(f"Analysis for {run_id} is not complete. Current state: {job_state}")
+        update_run_status(dirpath, 6, 'Pipeline in progress', job_id=job_id)
 
 def main():
     setup_database()
@@ -251,6 +278,8 @@ def main():
                 process_stage4(dirpath, file)
             elif run_status['stage'] == 5:
                 process_stage5(dirpath, file)
+            elif run_status['stage'] == 6:
+                process_stage6(dirpath, file)
 
         update_last_check() # Update the database to reflect check has taken place
         time.sleep(30)  # Check for new directories every 30 seconds
