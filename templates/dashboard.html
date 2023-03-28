@@ -1,45 +1,35 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>DNAnexus Run Status Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-  </head>
-  <body>
-    <div class="container">
-      <h1 class="my-4 text-center">DNAnexus Run Status Dashboard</h1>
-      <div class="table-responsive">
-        <table class="table table-striped table-hover">
-          <thead class="table-dark">
-            <tr>
-              <th>ID</th>
-              <th>Run ID</th>
-              <th>Dirpath</th>
-              <th>Stage</th>
-              <th>Output Dir</th>
-              <th style="font-weight:bold;">Status</th>
-              <th>Demux ID</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in data %}
-            <tr>
-              <td>{{ row[0] }}</td>
-              <td>{{ row[1] }}</td>
-              <td>{{ row[2] }}</td>
-              <td>{{ row[3] }}</td>
-              <td>{{ row[4] }}</td>
-              <td style="font-weight:bold;">{{ row[5] }}</td>
-              <td>{{ row[6] }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+   <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>DNAnexus Run Status Dashboard</title>
+      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+   </head>
+   <body>
+      <div class="container">
+         <h1 class="my-4 text-center">DNAnexus Run Status Dashboard</h1>
+         <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+               <a class="nav-link active" id="run-status-tab" data-bs-toggle="tab" href="#run-status" role="tab" aria-controls="run-status" aria-selected="true">Current Runs</a>
+            </li>
+            <li class="nav-item" role="presentation">
+               <a class="nav-link" id="run-metrics-tab" data-bs-toggle="tab" href="#run-metrics" role="tab" aria-controls="run-metrics" aria-selected="false">Run-level Metrics</a>
+            </li>
+         </ul>
+         <div class="tab-content" id="myTabContent">
+            <div class="tab-pane fade show active" id="run-status" role="tabpanel" aria-labelledby="run-status-tab">
+               <!-- Run Status Table -->
+               {% include 'run_status_table.html' %}
+            </div>
+            <div class="tab-pane fade" id="run-metrics" role="tabpanel" aria-labelledby="run-metrics-tab">
+               <!-- Run Metrics Table -->
+               {% include 'run_metrics_table.html' %}
+            </div>
+         </div>
+         <p class="text-center" style="font-size: 0.8rem;">Last check: {{ last_check }}</p>
       </div>
-      <p class="text-center" style="font-size: 0.8rem;">Last check: {{ last_check }}</p>
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
-  </body>
+      <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
+   </body>
 </html>

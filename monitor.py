@@ -40,6 +40,18 @@ def setup_database():
         )
     ''')
 
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS run_metrics (
+            id INTEGER PRIMARY KEY,
+            run_id INTEGER,
+            q30 REAL,
+            error_rate REAL,
+            yield REAL,
+            cluster_pf REAL,
+            FOREIGN KEY (run_id) REFERENCES run_status(run_id)
+        )
+    ''')
+
     conn.commit()
     conn.close()
     
@@ -86,6 +98,21 @@ def get_run_status(dirpath):
 
     if result:
         return {'run_id': result[0], 'stage': result[1], 'output_dir': result[2], 'status': result[3], 'job_id': result[4]}
+    else:
+        return None
+
+def get_run_metrics(run_id):
+    '''Grab q30 and error rate from run_metrics table'''
+    conn = sqlite3.connect("db/pipemanager.db")
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT q30, error_rate FROM run_metrics WHERE run_id = ?", (run_id,))
+    result = cursor.fetchone()
+
+    conn.close()
+
+    if result:
+        return result
     else:
         return None
 
@@ -166,22 +193,34 @@ def process_stage3(dirpath, file):
 
 
 def process_stage4(dirpath, file):
-    '''Demultiplex complete, ensure the QC is valid before launching analysis'''
-    print(f'Processing Stage 4 (analysis) in {dirpath}')
-    with open(os.path.join(dirpath, 'move.txt'), 'r') as f:
-        output_dir = f.read().strip()
+    '''Run q_scrape after demultiplex is complete'''
+    print(f'Processing Stage 4 (QC checking) in {dirpath}')
+    run_status = get_run_status(dirpath)
+    output_dir = run_status['output_dir']
 
-    if os.path.isfile(os.path.join(output_dir, 'pipeline.launch')):
-        print('Pipeline launched.') #debug
+    subprocess.run(['python3', 'q_scrape.py', output_dir, dirpath, str(run_status['run_id'])], check=True)
+    update_run_status(dirpath, 5, 'QC check complete')
+
+def process_stage5(dirpath, file):
+    '''Ensure the QC is valid before launching analysis'''
+    print(f'Processing Stage 5 (analysis) in {dirpath}')
+    run_status = get_run_status(dirpath)
+    output_dir = run_status['output_dir']
+    run_id = run_status['run_id']
+
+    run_metrics = get_run_metrics(run_id)
+        
+    if run_metrics and run_metrics[0] > 80 and run_metrics[1] < 2:
+        #subprocess.run(['yes', 'Y'], check=True)
+        #subprocess.run(['python3', '/projects/dnanexus/tso500-prepare-inputs/create_inputs.py', output_dir, '-s', os.path.join(output_dir, 'SampleSheet.csv')], check=True)
+        print('python3 ' + ' /projects/dnanexus/tso500-prepare-inputs/create_inputs.py ' + output_dir + ' -s ' + os.path.join(output_dir, 'SampleSheet.csv'))
+        print(f'Pipeline launched for run: {run_id}')
+        update_run_status(dirpath, 6, 'Pipeline launched')
+    else:
+        print(f'Run: {run_id} has failed quality control and cannot automatically be launched. Please check this run manually before proceeding.')
         return
-    elif os.path.isfile(os.path.join(output_dir, 'qc.pass')):
-        subprocess.run(['yes', 'Y'], check=True)
-        subprocess.run(['python3', '/projects/dnanexus/tso500-prepare-inputs/create_inputs.py', output_dir, '-s', os.path.join(output_dir, 'SampleSheet.csv')], check=True)
-        open(os.path.join(output_dir, 'pipeline.launch'), 'w').close()
-    elif os.path.isfile(os.path.join(output_dir, 'RTAComplete.txt')):
-        subprocess.run(['python3', 'q_scrape.py', output_dir, dirpath], check=True)
 
-    update_run_status(dirpath, None, 'Run completed')
+    #update_run_status(dirpath, None, 'Run completed')
 
 def main():
     setup_database()
@@ -210,6 +249,8 @@ def main():
                 process_stage3(dirpath, file)
             elif run_status['stage'] == 4:
                 process_stage4(dirpath, file)
+            elif run_status['stage'] == 5:
+                process_stage5(dirpath, file)
 
         update_last_check() # Update the database to reflect check has taken place
         time.sleep(30)  # Check for new directories every 30 seconds

@@ -4,10 +4,18 @@ import sqlite3
 app = Flask(__name__)
 DB_PATH = 'db/pipemanager.db'
 
-def get_dashboard_data():
+def get_run_status_data():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM run_status')
+    data = cursor.fetchall()
+    conn.close()
+    return data
+
+def get_run_metrics_data():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM run_metrics')
     data = cursor.fetchall()
     conn.close()
     return data
@@ -28,9 +36,10 @@ def get_last_check():
 
 @app.route('/dashboard')
 def dashboard():
-    data = get_dashboard_data()
+    run_status_data = get_run_status_data()
+    run_metrics_data = get_run_metrics_data()
     last_check = get_last_check()
-    return render_template('dashboard.html', data=data, last_check=last_check)
+    return render_template('dashboard.html', run_status_data=run_status_data, run_metrics_data=run_metrics_data, last_check=last_check)
 
 if __name__ == '__main__':
     app.run(debug=True)

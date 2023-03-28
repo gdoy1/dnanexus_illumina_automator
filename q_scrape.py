@@ -7,6 +7,7 @@ from interop import py_interop_run_metrics, py_interop_run, py_interop_summary
 import os
 import numpy as np
 import sys
+import sqlite3
 
 def check_rta_complete(output_dir):
     """Check if RTA has completed through RTAComplete.txt."""
@@ -17,6 +18,14 @@ def load_run_metrics(run_folder):
     run_metrics = py_interop_run_metrics.run_metrics()
     run_metrics.read(run_folder)
     return run_metrics
+
+def update_run_metrics(run_id, q30, error_rate):
+    conn = sqlite3.connect("db/pipemanager.db")
+    cursor = conn.cursor()
+
+    cursor.execute("INSERT OR REPLACE INTO run_metrics (run_id, q30, error_rate) VALUES (?, ?, ?)", (run_id, q30, error_rate))
+    conn.commit()
+    conn.close()
 
 def generate_summary(run_metrics):
     """Create summary object and populate it from the run metrics."""
@@ -48,15 +57,9 @@ def calculate_average_q30_and_error_rate(summary):
 
     return average_q30, average_error_rate
 
-def write_qc_pass_file(output_dir, average_q30, average_error_rate):
-    """Write the qc.pass file if the average Q30 and error rate pass the thresholds."""
-    if average_q30 >= 80 and average_error_rate < 2:
-        with open(os.path.join(output_dir, "qc.pass"), "w") as f:
-            f.write("Average Q30: {:.2f}%\n".format(average_q30))
-            f.write("Average Error Rate: {:.2f}%\n".format(average_error_rate))
-
 def main():
     output_dir = sys.argv[1]
+    run_id = int(sys.argv[3])
 
     if not check_rta_complete(output_dir):
         print("RTAComplete.txt not found in output directory. Aborting...")
@@ -67,10 +70,10 @@ def main():
     summary = generate_summary(run_metrics)
     average_q30, average_error_rate = calculate_average_q30_and_error_rate(summary)
 
-    write_qc_pass_file(output_dir, average_q30, average_error_rate)
-
     print("Average Q30: {:.2f}%".format(average_q30))
     print("Average Error Rate: {:.2f}%".format(average_error_rate))
+
+    update_run_metrics(run_id, average_q30, average_error_rate)
 
 if __name__ == "__main__":
     main()
