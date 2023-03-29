@@ -16,6 +16,7 @@ import pytz
 from datetime import datetime
 
 DB_PATH = 'db/pipemanager.db'
+DX_API_KEY = os.environ.get('DX_API_KEY')
 
 def setup_database():
     conn = sqlite3.connect(DB_PATH)
@@ -133,7 +134,7 @@ def validate_xlsx_file(file):
 
 def get_dx_job_status(basename, project_id):
     '''Scrape the DNAnexus API for run status - IMPORTANT - REMOVE API TOKEN BEFORE MAKING REPO LIVE'''
-    dxpy.set_security_context({"auth_token_type": "Bearer", "auth_token": "API_TOKEN"})
+    dxpy.set_security_context({"auth_token_type": "Bearer", "auth_token": DX_API_KEY})
     
     for job in dxpy.find_jobs(project=project_id):
         job_desc = dxpy.DXJob(job['id']).describe()
@@ -143,7 +144,7 @@ def get_dx_job_status(basename, project_id):
 
 def get_dx_analysis_status(basename, project_id):
     '''Scrape the DNAnexus API for run status - IMPORTANT - REMOVE API TOKEN BEFORE MAKING REPO LIVE'''
-    dxpy.set_security_context({"auth_token_type": "Bearer", "auth_token": "API_TOKEN"})
+    dxpy.set_security_context({"auth_token_type": "Bearer", "auth_token": DX_API_KEY})
     
     for analysis in dxpy.find_analyses(project=project_id, no_parent_job=True, include_subjobs=False):
         analysis_desc = dxpy.DXAnalysis(analysis['id']).describe()
