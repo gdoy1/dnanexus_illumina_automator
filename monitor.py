@@ -29,7 +29,8 @@ def setup_database():
             stage INTEGER,
             output_dir TEXT,
             status TEXT,
-            job_id TEXT
+            job_id TEXT,
+            analysis_id TEXT
         )
     ''')
 
@@ -55,12 +56,12 @@ def setup_database():
     conn.commit()
     conn.close()
     
-def update_run_status(dirpath, stage, status, run_id=None, output_dir=None, job_id=None):
+def update_run_status(dirpath, stage, status, run_id=None, output_dir=None, job_id=None, analysis_id=None):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     cursor.execute('''
-        INSERT OR REPLACE INTO run_status (id, run_id, dirpath, stage, output_dir, status, job_id)
+        INSERT OR REPLACE INTO run_status (id, run_id, dirpath, stage, output_dir, status, job_id, analysis_id)
         VALUES (
             (SELECT id FROM run_status WHERE dirpath = ?),
             COALESCE(?, (SELECT run_id FROM run_status WHERE dirpath = ?)),
@@ -68,10 +69,11 @@ def update_run_status(dirpath, stage, status, run_id=None, output_dir=None, job_
             ?,
             COALESCE(?, (SELECT output_dir FROM run_status WHERE dirpath = ?)),
             ?,
-            COALESCE(?, (SELECT job_id FROM run_status WHERE dirpath = ?))
+            COALESCE(?, (SELECT job_id FROM run_status WHERE dirpath = ?)),
+            COALESCE(?, (SELECT analysis_id FROM run_status WHERE dirpath = ?))
         )
-    ''', (dirpath, run_id, dirpath, dirpath, stage, output_dir, dirpath, status, job_id, dirpath))
-    
+    ''', (dirpath, run_id, dirpath, dirpath, stage, output_dir, dirpath, status, job_id, dirpath, analysis_id, dirpath))
+
     conn.commit()
     conn.close()
 
@@ -131,7 +133,7 @@ def validate_xlsx_file(file):
 
 def get_dx_job_status(basename, project_id):
     '''Scrape the DNAnexus API for run status - IMPORTANT - REMOVE API TOKEN BEFORE MAKING REPO LIVE'''
-    dxpy.set_security_context({"auth_token_type": "Bearer", "auth_token": "wWPpJGA9jPho4RjpOuzrGBAktQXCzVHf"})
+    dxpy.set_security_context({"auth_token_type": "Bearer", "auth_token": "API_TOKEN"})
     
     for job in dxpy.find_jobs(project=project_id):
         job_desc = dxpy.DXJob(job['id']).describe()
@@ -141,7 +143,7 @@ def get_dx_job_status(basename, project_id):
 
 def get_dx_analysis_status(basename, project_id):
     '''Scrape the DNAnexus API for run status - IMPORTANT - REMOVE API TOKEN BEFORE MAKING REPO LIVE'''
-    dxpy.set_security_context({"auth_token_type": "Bearer", "auth_token": "wWPpJGA9jPho4RjpOuzrGBAktQXCzVHf"})
+    dxpy.set_security_context({"auth_token_type": "Bearer", "auth_token": "API_TOKEN"})
     
     for analysis in dxpy.find_analyses(project=project_id, no_parent_job=True, include_subjobs=False):
         analysis_desc = dxpy.DXAnalysis(analysis['id']).describe()
@@ -244,14 +246,15 @@ def process_stage6(dirpath, file):
 
     if job_state == 'done':
         print(f"Analysis for run {run_id} is complete.")
-        update_run_status(dirpath, 7, 'Analysis complete', job_id=job_id)
+        update_run_status(dirpath, 7, 'Analysis complete', analysis_id=job_id)
     else:
         print(f"Analysis for {run_id} is not complete. Current state: {job_state}")
-        update_run_status(dirpath, 6, 'Pipeline in progress', job_id=job_id)
+        update_run_status(dirpath, 6, 'Pipeline in progress', analysis_id=job_id)
 
 def main():
+    # Create the necessary SQLite structure
     setup_database()
-    
+    # Define the technical directory for locating the xlsx files
     search_path = '/home/bioinf/george/pipeline_automation/*/*/*/'
     
     while True:
@@ -267,9 +270,9 @@ def main():
             file = new_files[0]
 
             if run_status is None:
-                # New directory, start processing Stage 1
+            # New directory, start processing Stage 1
                 process_stage1(dirpath, file)
-
+            # Iterate through all the stages of the pipeline depending on the run_folder status
             elif run_status['stage'] == 2:
                 process_stage2(dirpath, file)
             elif run_status['stage'] == 3:
