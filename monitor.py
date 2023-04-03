@@ -54,6 +54,7 @@ def setup_database():
         )
     ''')
 
+    # Close the connection
     conn.commit()
     conn.close()
     
@@ -94,30 +95,51 @@ def get_run_status(dirpath):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    cursor.execute('SELECT run_id, stage, output_dir, status, job_id FROM run_status WHERE dirpath = ?', (dirpath,))
-    result = cursor.fetchone()
+    cursor.execute('''
+        SELECT run_id, dirpath, stage, output_dir, status, job_id, analysis_id
+        FROM run_status
+        WHERE dirpath = ?
+    ''', (dirpath,))
 
+    result = cursor.fetchone()
     conn.close()
 
     if result:
-        return {'run_id': result[0], 'stage': result[1], 'output_dir': result[2], 'status': result[3], 'job_id': result[4]}
+        return {
+            'run_id': result[0],
+            'dirpath': result[1],
+            'stage': result[2],
+            'output_dir': result[3],
+            'status': result[4],
+            'job_id': result[5],
+            'analysis_id': result[6]
+        }
     else:
         return None
 
 def get_run_metrics(run_id):
-    '''Grab q30 and error rate from run_metrics table'''
-    conn = sqlite3.connect("db/pipemanager.db")
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    cursor.execute("SELECT q30, error_rate FROM run_metrics WHERE run_id = ?", (run_id,))
-    result = cursor.fetchone()
+    cursor.execute('''
+        SELECT q30, error_rate, yield, cluster_pf
+        FROM run_metrics
+        WHERE run_id = ?
+    ''', (run_id,))
 
+    result = cursor.fetchone()
     conn.close()
 
     if result:
-        return result
+        return {
+            'q30': result[0],
+            'error_rate': result[1],
+            'yield': result[2],
+            'cluster_pf': result[3]
+        }
     else:
         return None
+
 
 def find_new_files(dirpath):
     return glob.glob(os.path.join(dirpath, '*.xlsx'))
@@ -212,7 +234,7 @@ def process_stage4(dirpath, file):
     output_dir = run_status['output_dir']
 
     subprocess.run(['python3', 'q_scrape.py', output_dir, dirpath, str(run_status['run_id'])], check=True)
-    update_run_status(dirpath, 5, 'QC check complete')
+    update_run_status(dirpath, 5, 'QC PASS')
 
 def process_stage5(dirpath, file):
     '''Ensure the QC is valid before launching analysis'''
@@ -223,7 +245,7 @@ def process_stage5(dirpath, file):
 
     run_metrics = get_run_metrics(run_id)
         
-    if run_metrics and run_metrics[0] > 80 and run_metrics[1] < 2:
+    if run_metrics and run_metrics['q30'] > 80 and run_metrics['error_rate'] < 2:
         #subprocess.run(['yes', 'Y'], check=True)
         #subprocess.run(['python3', '/projects/dnanexus/tso500-prepare-inputs/create_inputs.py', output_dir, '-s', os.path.join(output_dir, 'SampleSheet.csv')], check=True)
         print('python3 ' + ' /projects/dnanexus/tso500-prepare-inputs/create_inputs.py ' + output_dir + ' -s ' + os.path.join(output_dir, 'SampleSheet.csv'))
@@ -257,7 +279,7 @@ def main():
     setup_database()
     # Define the technical directory for locating the xlsx files
     # search_path = '/home/bioinf/george/pipeline_automation/*/*/*/'
-    search_path = '/home/bioinf/george/pipeline_automation/2023/feb/2305059'
+    search_path = '/home/bioinf/george/pipeline_automation/2023/feb/2303550'
     
     while True:
         directories = glob.glob(search_path, recursive=True)

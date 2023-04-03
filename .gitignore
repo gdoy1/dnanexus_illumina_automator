@@ -10,3 +10,6 @@ dockerfile
 clear.py
 monitor.sh
 dxpoll.py
+test_monitor.py
+settings.xml
+Makefile
