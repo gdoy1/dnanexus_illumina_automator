@@ -1,0 +1,12 @@
+myenv/
+backups/
+dashboard/
+phase2/
+2023/
+tests/
+dxstream/
+trello.py
+dockerfile
+clear.py
+monitor.sh
+dxpoll.py

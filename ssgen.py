@@ -9,6 +9,8 @@ import csv
 import os
 import zipfile
 import subprocess
+import re
+from datetime import datetime
 
 def load_workbook(excel_file):
     """Load workbook and ensure it is valid."""
@@ -35,14 +37,30 @@ def write_csv(sheet, output_dir, file_name):
                 if "N/A" in row:
                     print("Error: N/A value found in sheet {}. Skipping...".format(sheet.title))
                     continue
-                csvwriter.writerow(row)
+                formatted_row = []
+                for cell in row:
+                    if isinstance(cell, datetime):
+                        formatted_row.append(cell.strftime('%d/%m/%Y'))
+                    else:
+                        formatted_row.append(cell)
+                csvwriter.writerow(formatted_row)
 
 def generate_roche_combined_csv(workbook, excel_file):
     """Create the combined csv required for Roche samplesheet."""
     if "Combined Sample sheet" in workbook.sheetnames:
         worksheet = workbook["Combined Sample sheet"]
+        raw_value = worksheet["B5"].value
+        
+        # Use regex to extract the numeric value of the worklist
+        match = re.match(r"(\d+)", raw_value)
+        if match:
+            extracted_value = match.group(1)
+        else:
+            print(f"Error: Invalid value in B5 ({raw_value}). Skipping...")
+            return None
+
         output_dir = os.path.dirname(excel_file)
-        file_name = worksheet["B5"].value + "_combined.csv"
+        file_name = extracted_value + "_combined.csv"
         write_csv(worksheet, output_dir, file_name)
         print("Roche combined csv generated: {}.".format(excel_file))
         return file_name

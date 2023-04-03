@@ -256,7 +256,8 @@ def main():
     # Create the necessary SQLite structure
     setup_database()
     # Define the technical directory for locating the xlsx files
-    search_path = '/home/bioinf/george/pipeline_automation/*/*/*/'
+    # search_path = '/home/bioinf/george/pipeline_automation/*/*/*/'
+    search_path = '/home/bioinf/george/pipeline_automation/2023/feb/2305059'
     
     while True:
         directories = glob.glob(search_path, recursive=True)
