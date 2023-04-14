@@ -16,3 +16,4 @@ Makefile
 monitor.log
 static/
 test.py
+output/
