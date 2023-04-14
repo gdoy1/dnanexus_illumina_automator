@@ -13,3 +13,6 @@ dxpoll.py
 test_monitor.py
 settings.xml
 Makefile
+monitor.log
+static/
+test.py

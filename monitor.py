@@ -50,6 +50,12 @@ def setup_database():
             error_rate REAL,
             yield REAL,
             cluster_pf REAL,
+            cluster_density REAL,
+            qscore_histogram TEXT,
+            scatter_plot TEXT,
+            flowcell REAL,
+            instrument REAL,
+            side REAL,
             FOREIGN KEY (run_id) REFERENCES run_status(run_id)
         )
     ''')
@@ -270,6 +276,9 @@ def process_stage6(dirpath, file):
     if job_state == 'done':
         print(f"Analysis for run {run_id} is complete.")
         update_run_status(dirpath, 7, 'Analysis complete', analysis_id=job_id)
+    elif job_state == 'failed':
+        print(f"Analysis for run {run_id} failed.")
+        update_run_status(dirpath, 0, 'FAILED', analysis_id=job_id)
     else:
         print(f"Analysis for {run_id} is not complete. Current state: {job_state}")
         update_run_status(dirpath, 6, 'Pipeline in progress', analysis_id=job_id)
@@ -278,8 +287,8 @@ def main():
     # Create the necessary SQLite structure
     setup_database()
     # Define the technical directory for locating the xlsx files
-    # search_path = '/home/bioinf/george/pipeline_automation/*/*/*/'
-    search_path = '/home/bioinf/george/pipeline_automation/2023/feb/2303550'
+    search_path = '/home/bioinf/george/pipeline_automation/*/*/*/'
+    # search_path = '/home/bioinf/george/pipeline_automation/2023/feb/2303550'
     
     while True:
         directories = glob.glob(search_path, recursive=True)

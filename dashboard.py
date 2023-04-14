@@ -1,5 +1,8 @@
 from flask import Flask, render_template
 import sqlite3
+import base64
+# from io import BytesIO
+# from PIL import Image, UnidentifiedImageError
 
 app = Flask(__name__)
 DB_PATH = 'db/pipemanager.db'
@@ -34,10 +37,25 @@ def get_last_check():
     else:
         return None
 
+def get_image_paths(run_id):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT qscore_histogram, scatter_plot FROM run_metrics WHERE run_id = ?", (run_id,))
+    result = cursor.fetchone()
+    conn.close()
+
+    if result:
+        return result
+    else:
+        return None, None
+
 @app.route('/dashboard')
 def dashboard():
     run_status_data = get_run_status_data()
     run_metrics_data = get_run_metrics_data()
+    for row in run_metrics_data:
+        qscore_histogram_path, scatter_plot_path = get_image_paths(row[1])
+        row += (qscore_histogram_path, scatter_plot_path)
     last_check = get_last_check()
     return render_template('dashboard.html', run_status_data=run_status_data, run_metrics_data=run_metrics_data, last_check=last_check)
 
