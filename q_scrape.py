@@ -13,6 +13,11 @@ import numpy as np
 import sys
 import sqlite3
 import xml.etree.ElementTree as ET
+import yaml
+
+def load_config(config_file='config.yaml'):
+    with open(config_file) as file:
+        return yaml.safe_load(file)
 
 def check_rta_complete(output_dir):
     """Check if RTA has completed through RTAComplete.txt."""
@@ -26,9 +31,11 @@ def load_run_metrics(run_folder):
     run_metrics.read(run_folder, valid_to_load)
     return run_metrics
 
-def update_run_metrics(run_id, q30, error_rate, yield_g, pct_pf_clusters, cluster_density, qscore_histogram, scatter_plot, flowcell, instrument, side):
+def update_run_metrics(run_id, q30, error_rate, yield_g, pct_pf_clusters, cluster_density, qscore_histogram, scatter_plot, flowcell, instrument, side, config):
     '''Updates the run_metrics table in the SQLite database with the provided data.'''
-    conn = sqlite3.connect("db/pipemanager.db")
+    db_path = config['db_path']
+    DB_PATH = db_path
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     cursor.execute("INSERT OR REPLACE INTO run_metrics (run_id, q30, error_rate, yield, cluster_pf, cluster_density, qscore_histogram, scatter_plot, flowcell, instrument, side) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (run_id, q30, error_rate, yield_g, pct_pf_clusters, cluster_density, qscore_histogram, scatter_plot, flowcell, instrument, side))
@@ -242,7 +249,8 @@ def main():
     side = root.find('Side').text
 
     # Update the run_metrics table with all the scraped information
-    update_run_metrics(run_id, average_q30, average_error_rate, yield_g, pct_pf_clusters, mean_density/1000, qscore_histogram, scatter_plot, flowcell, instrument, side)
+    config = load_config()
+    update_run_metrics(run_id, average_q30, average_error_rate, yield_g, pct_pf_clusters, mean_density/1000, qscore_histogram, scatter_plot, flowcell, instrument, side, config)
 
 if __name__ == "__main__":
     main()

@@ -33,7 +33,7 @@ def find_matching_run_params_file(runs_dir, search_string):
     return run_params_file, output_dir
 
 def update_run_status_output_dir(search_string, output_dir, config):
-    db_path = config['DB_PATH']
+    db_path = config['db_path']
     DB_PATH = db_path
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
