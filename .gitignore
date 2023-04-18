@@ -6,7 +6,6 @@ phase2/
 tests/
 dxstream/
 trello.py
-dockerfile
 clear.py
 monitor.sh
 dxpoll.py
@@ -17,3 +16,4 @@ monitor.log
 static/
 test.py
 output/
+config.yaml

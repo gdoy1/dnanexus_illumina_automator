@@ -28,34 +28,33 @@ git clone https://gitlab.com/gdoy/dnanexus_illumina_automator.git
 ```
 If you don't have Git installed, you can download the repository as a ZIP file and extract it.
 
-2. Install the required libraries.
+2. Configure the config.yaml file with the appropriate directories and database information.
+
+3. Install the required libraries.
 ```
 pip install -r requirements.txt
 ```
 
-# Docker Deployment
+## Docker Deployment
 
-1. Build the Docker image by running the following command from the root of your project directory:
-```
-docker build -t nexus_automator .
-```
-
-2. Before running the script, make sure to set the DX_API_KEY as an environment variable. This allows the script to securely access the DNAnexus API key. You can set it by adding the following line to your .bashrc or .bash_profile file:
+1. Before building the Docker image, make sure to set the DX_API_KEY as an environment variable. This allows the script to securely access the DNAnexus API key. You can set it by adding the following line to your .bashrc or .bash_profile file:
 ```
 export DX_API_KEY=your_api_key_here
 ```
 
-3. Run a Docker container based on your newly created image:
+2. Build the Docker image by running the following command from the root of your project directory:
+```
+docker build -t nexus_automator .
+```
+
+## Usage
+
+1. Run a Docker container based on your newly created image:
 ```
 docker run -p 5000:5000 -e DX_API_KEY=$DX_API_KEY nexus-automator
 ```
 
-4. Access the dashboard by navigating to http://localhost:5000 in your web browser.
-
-## Usage
-
-1. Configure the config.yaml file with the appropriate directories and database information.
-3. Run monitor.py to start the pipeline monitoring process.
+2. Access the dashboard by navigating to http://localhost:5000 in your web browser.
 
 ## Scripts Description
 
@@ -63,7 +62,7 @@ docker run -p 5000:5000 -e DX_API_KEY=$DX_API_KEY nexus-automator
 - q_scrape.py: Checks if Q30 and error rate exceed a minimum threshold before launching the pipeline, extracts data from InterOp files, parses XML files, updates the SQLite database, and generates plots.
 - ssgen.py: Moves samplesheets to their corresponding run folder based on RunParameters.xml and generates correctly formatted samplesheets.
 - ssmove.py: Moves csv files to the output directory based on a search string that matches the ExperimentName in RunParameters.xml.
-- dashboard.py: Defines a Flask web application that serves a dashboard page displaying run status and metrics retrieved from the SQLite database.
+- dashboard.py: Defines a Flask web application that serves lsa dashboard page displaying run status and metrics retrieved from the SQLite database.
 
 ## Workflow
 ![Image](workflow.png)
