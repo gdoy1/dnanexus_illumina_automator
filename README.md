@@ -16,6 +16,7 @@ This repository contains a collection of Python scripts designed to automate the
 - Generate Q-score histogram plot and scatter plot
 - Serve a dashboard displaying run status and metrics using Flask
 
+## Requirements
 - Python 3.x
 - Docker (for Docker deployment)
 - Libraries: Flask, SQLite, xml, csv, DNAnexus, and other dependencies
