@@ -1,5 +1,0 @@
-db_path: 'db/pipemanager.db'
-search_path: '/home/bioinf/george/pipeline_automation/RUN_FOLDERS/*/*/*/' # Path containing sequencing XLSX files
-run_dir: '/mnt/dxstream/runs/Novaseq/*/' # Run directory
-dnanexus_project_id_demux: 'project-G20fB684yYBbqfXFBvGvzgXV' # Project ID for the demultiplex project on DNAnexus
-dnanexus_project_id_analysis: 'project-G20fJgQ4V6pqf5GqFF4ZZfGV' # Project ID for the analysis project on DNAnexus
