@@ -1,5 +1,0 @@
-db_path: 'path/to/your.db'
-search_path: '/path/to/technical/directory/*/*/*/' # Path containing sequencing XLSX files
-run_dir: '/path/to/runs/directory/*/' # Run directory
-dnanexus_project_id_demux: 'project-your_demux_project_id' # Project ID for the demultiplex project on DNAnexus
-dnanexus_project_id_analysis: 'project-your_analysis_project_id' # Project ID for the analysis project on DNAnexus
