@@ -10,12 +10,11 @@ import shutil
 import xml.etree.ElementTree as ET
 import glob
 import sqlite3
+import yaml
 
-def parse_settings(settings_file):
-    """Parse settings.xml, return the root element."""
-    settings_tree = ET.parse(settings_file)
-    settings_root = settings_tree.getroot()
-    return settings_root
+def load_config(config_file='config.yaml'):
+    with open(config_file) as file:
+        return yaml.safe_load(file)
 
 def find_matching_run_params_file(runs_dir, search_string):
     """Find matching RunParameters.xml file and output_dir from RTA_directory."""
@@ -33,8 +32,9 @@ def find_matching_run_params_file(runs_dir, search_string):
                 break
     return run_params_file, output_dir
 
-def update_run_status_output_dir(search_string, output_dir):
-    DB_PATH = 'db/pipemanager.db'
+def update_run_status_output_dir(search_string, output_dir, config):
+    db_path = config['DB_PATH']
+    DB_PATH = db_path
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
@@ -50,20 +50,18 @@ def move_csv_files(excel_file, output_dir):
             shutil.move(os.path.join(excel_dir, file_name), os.path.join(output_dir, file_name))
     print(f'Moved CSV files from {excel_dir} to {output_dir}')
 
-def main(excel_file, search_string):
-    settings_file = 'settings.xml'
-    settings_root = parse_settings(settings_file)
-    runs_dir = settings_root.find('directories/RTA_directory').text
-
+def main(excel_file, search_string, config):
+    runs_dir = config['run_dir']
     run_params_file, output_dir = find_matching_run_params_file(runs_dir, search_string)
 
     if output_dir is not None:
         move_csv_files(excel_file, output_dir)
-        update_run_status_output_dir(search_string, output_dir)
+        update_run_status_output_dir(search_string, output_dir, config)
     else:
         print(f'Error: Matching RunParameters.xml file not found for search string "{search_string}"')
 
 if __name__ == "__main__":
     excel_file = sys.argv[1]
     search_string = sys.argv[2]
-    main(excel_file, search_string)
+    config = load_config()
+    main(excel_file, search_string, config)

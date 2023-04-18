@@ -40,17 +40,22 @@ pip install -r requirements.txt
 docker build -t nexus_automator .
 ```
 
-2. Run a Docker container based on your newly created image:
+2. Before running the script, make sure to set the DX_API_KEY as an environment variable. This allows the script to securely access the DNAnexus API key. You can set it by adding the following line to your .bashrc or .bash_profile file:
 ```
-docker run -p 5000:5000 nexus-automator
+export DX_API_KEY=your_api_key_here
 ```
 
-3. Access the dashboard by navigating to http://localhost:5000 in your web browser.
+3. Run a Docker container based on your newly created image:
+```
+docker run -p 5000:5000 -e DX_API_KEY=$DX_API_KEY nexus-automator
+```
+
+4. Access the dashboard by navigating to http://localhost:5000 in your web browser.
 
 ## Usage
 
-1. Configure the main.py main() function with the appropriate directories and database information.
-2. Run monitor.py to start the pipeline monitoring process.
+1. Configure the config.yaml file with the appropriate directories and database information.
+3. Run monitor.py to start the pipeline monitoring process.
 
 ## Scripts Description
 
@@ -62,9 +67,6 @@ docker run -p 5000:5000 nexus-automator
 
 ## Workflow
 ![Image](workflow.png)
-
-## Troubleshooting
-You can refer to the monitor.log file to check console output for error messages.
 
 ## Contributors
 George Doyle (developer)

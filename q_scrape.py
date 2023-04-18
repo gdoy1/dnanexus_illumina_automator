@@ -3,7 +3,7 @@
 
 # Script designed to check Q30 and error rate exceed minimum threshold before launching pipeline
 
-from interop import py_interop_run_metrics, py_interop_run, py_interop_summary, py_interop_plot, py_interop_table
+from interop import py_interop_plot, py_interop_run_metrics, py_interop_run, py_interop_summary, py_interop_table
 from decimal import Decimal, getcontext
 import io
 import pandas as pd
@@ -40,6 +40,45 @@ def generate_summary(run_metrics):
     summary = py_interop_summary.run_summary()
     py_interop_summary.summarize_run_metrics(run_metrics, summary)
     return summary
+
+def generate_indexing_summary(run_folder):
+    # Not essential to the project, but still useful for manual analysis where indexing report is available
+    run_metrics = py_interop_run_metrics.run_metrics()
+    valid_to_load = py_interop_run.uchar_vector(py_interop_run.MetricCount, 0)
+    py_interop_run_metrics.list_index_metrics_to_load(valid_to_load)
+    run_metrics.read(run_folder, valid_to_load)
+
+    summary = py_interop_summary.index_flowcell_summary()
+    py_interop_summary.summarize_index_metrics(run_metrics, summary)
+
+    if summary.size() == 0:  # Check if there are any lanes before accessing the summary object
+        return None
+
+    lane_summary = summary.at(0)
+
+    if lane_summary.size() == 0:
+        return None  # Return None if there are no lanes
+
+    columns = (
+        ('Index Number', 'id'),
+        ('Sample Id', 'sample_id'),
+        ('Project', 'project_name'),
+        ('Index 1 (I7)', 'index1'),
+        ('Index 2 (I5)', 'index2'),
+        ('% Reads Identified (PF)', 'fraction_mapped')
+    )
+
+    data = []
+    for label, func in columns:
+        data.append((
+            label,
+            pd.Series([getattr(lane_summary.at(i), func)() for i in range(lane_summary.size())],
+                      index=[lane_summary.at(i).id() for i in range(lane_summary.size())])
+        ))
+
+    df = pd.DataFrame.from_dict(dict(data))
+
+    return df
 
 def get_total_summary(summary):
     """Return the total_summary object from the summary."""
@@ -176,6 +215,13 @@ def main():
 
     data_occupied, data_pf = extract_data_for_scatter_plot(run_folder)
     scatter_plot = generate_scatter_plot(data_occupied, data_pf, run_id)
+
+    indexing_summary_df = generate_indexing_summary(run_folder)
+    if indexing_summary_df is not None:
+        print("Indexing Summary:")
+        print(indexing_summary_df)
+    else:
+        print("No indexing summary data available.")
 
     # Console prints
     print("Average Q30: {:.2f}%".format(average_q30))

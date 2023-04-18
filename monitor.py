@@ -1,9 +1,3 @@
-# Developed by George
-# 20/03/2023
-
-# Script designed to poll for changes in technical directory, generate SampleSheets in appropriate directory, 
-# poll for RTA completion, and launch pipeline via create_inputs.py
-
 import os
 import glob
 import subprocess
@@ -14,8 +8,20 @@ import re
 import dxpy
 import pytz
 from datetime import datetime
+import yaml
 
-DB_PATH = 'db/pipemanager.db'
+
+def load_config():
+    with open("config.yaml", "r") as config_file:
+        return yaml.safe_load(config_file)
+
+
+config = load_config()
+DB_PATH = config['db_path']
+SEARCH_PATH = config['search_path']
+RUN_DIR = config['run_dir']
+DNANEXUS_PROJECT_ID_DEMUX = config['dnanexus_project_id_demux']
+DNANEXUS_PROJECT_ID_ANALYSIS = config['dnanexus_project_id_analysis']
 DX_API_KEY = os.environ.get('DX_API_KEY')
 
 def setup_database():
@@ -161,7 +167,6 @@ def validate_xlsx_file(file):
         return False
 
 def get_dx_job_status(basename, project_id):
-    '''Scrape the DNAnexus API for run status - IMPORTANT - REMOVE API TOKEN BEFORE MAKING REPO LIVE'''
     dxpy.set_security_context({"auth_token_type": "Bearer", "auth_token": DX_API_KEY})
     
     for job in dxpy.find_jobs(project=project_id):
@@ -171,7 +176,6 @@ def get_dx_job_status(basename, project_id):
     return None
 
 def get_dx_analysis_status(basename, project_id):
-    '''Scrape the DNAnexus API for run status - IMPORTANT - REMOVE API TOKEN BEFORE MAKING REPO LIVE'''
     dxpy.set_security_context({"auth_token_type": "Bearer", "auth_token": DX_API_KEY})
     
     for analysis in dxpy.find_analyses(project=project_id, no_parent_job=True, include_subjobs=False):
@@ -212,6 +216,7 @@ def process_stage2(dirpath, file):
     update_run_status(dirpath, 3, 'RTA in progress')
 
 def process_stage3(dirpath, file):
+    dnanexus_project_id_demux = DNANEXUS_PROJECT_ID_DEMUX
     '''Check RTA has completed, then begin polling for demultiplex status using DNAnexus API'''
     print(f'Processing Stage 3 (demultiplex) in {dirpath}')
     run_status = get_run_status(dirpath)
@@ -221,7 +226,7 @@ def process_stage3(dirpath, file):
     if os.path.isfile(os.path.join(output_dir, 'RTAComplete.txt')):
         basename = os.path.basename(output_dir)
         # Run get_dx_job_status using the 'landing' directory as the base
-        job_state, job_id = get_dx_job_status(basename, 'project-G20fB684yYBbqfXFBvGvzgXV')
+        job_state, job_id = get_dx_job_status(basename, dnanexus_project_id_demux)
 
         if job_state == 'done':
             print(f"Demultiplex for run {run_id} is complete. Proceeding to analysis.")
@@ -264,6 +269,7 @@ def process_stage5(dirpath, file):
     #update_run_status(dirpath, None, 'Run completed')
 
 def process_stage6(dirpath, file):
+    dnanexus_project_id_analysis = DNANEXUS_PROJECT_ID_ANALYSIS
     '''Begin polling for analysis status using DNAnexus API'''
     print(f'Processing Stage 6 (check analysis) in {dirpath}')
     run_status = get_run_status(dirpath)
@@ -271,7 +277,7 @@ def process_stage6(dirpath, file):
     output_dir = run_status['output_dir']
     basename = os.path.basename(output_dir)
     # Run get_dx_job_status using the 'landing' directory as the base
-    job_state, job_id = get_dx_analysis_status(basename, 'project-G20fJgQ4V6pqf5GqFF4ZZfGV')
+    job_state, job_id = get_dx_analysis_status(basename, dnanexus_project_id_analysis)
 
     if job_state == 'done':
         print(f"Analysis for run {run_id} is complete.")
@@ -284,12 +290,10 @@ def process_stage6(dirpath, file):
         update_run_status(dirpath, 6, 'Pipeline in progress', analysis_id=job_id)
 
 def main():
-    # Create the necessary SQLite structure
+# Create the necessary SQLite structure
     setup_database()
-    # Define the technical directory for locating the xlsx files
-    search_path = '/home/bioinf/george/pipeline_automation/*/*/*/'
-    # search_path = '/home/bioinf/george/pipeline_automation/2023/feb/2303550'
-    
+    search_path = SEARCH_PATH
+
     while True:
         directories = glob.glob(search_path, recursive=True)
         
