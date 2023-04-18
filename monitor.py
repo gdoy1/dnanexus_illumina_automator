@@ -239,7 +239,7 @@ def process_stage4(dirpath, file):
     run_status = get_run_status(dirpath)
     output_dir = run_status['output_dir']
 
-    subprocess.run(['python3', 'q_scrape.py', output_dir, dirpath, str(run_status['run_id'])], check=True)
+    subprocess.run(['python3', 'q_scrape.py', output_dir, str(run_status['run_id'])], check=True)
     update_run_status(dirpath, 5, 'QC PASS')
 
 def process_stage5(dirpath, file):

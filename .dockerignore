@@ -1,3 +1,11 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.bak
+*.log
+.dockerignore
 myenv/
 backups/
 dashboard/
@@ -9,4 +17,3 @@ trello.py
 dockerfile
 clear.py
 monitor.sh
-dxpoll.py

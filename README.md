@@ -1,48 +1,24 @@
 # dnanexus_illumina_automator
 
 ## Description
-This project consists of a set of Python scripts designed to automate the process of generating, moving, and quality checking samplesheets for Illumina-based sequencing runs. The main script, monitor.py, is responsible for coordinating the entire process by polling for changes in the technical directory, generating samplesheets, and launching the pipeline using create_inputs.py.
+This repository contains a collection of Python scripts designed to automate the processing of DNA sequencing data. The pipeline polls a technical directory for changes, generates SampleSheets, checks for completion of Real-Time Analysis (RTA), and launches a pipeline via a Python script. It interacts with a SQLite database to track the progress of each run folder through the pipeline and scrapes the DNAnexus API to monitor the status of demultiplexing and analysis.
 
-Key components of the project:
+![Image](dashboard.png)
 
-- monitor.py: The main script that manages the workflow and executes other scripts as needed.
+## Features
+- Monitor a technical directory for changes
+- Generate and move SampleSheets to the corresponding run folders
+- Check for completion of Real-Time Analysis (RTA)
+- Launch a pipeline via a Python script
+- Track the progress of each run folder through a SQLite database
+- Scrape the DNAnexus API to monitor the status of demultiplexing and analysis
+- Check if Q30 and error rate exceed a minimum threshold before launching the pipeline
+- Generate Q-score histogram plot and scatter plot
+- Serve a dashboard displaying run status and metrics using Flask
 
-- settings.xml: A configuration file that stores variables such as project, virtual environment path, and run directory.
-
-- ssgen.py: A Python script that generates samplesheets from input Excel files, either for Roche combined runs or for separate TSO500 DNA and RNA runs.
-
-- ssmove.py: A Python script that moves the generated samplesheets to the corresponding run folder based on the ExperimentName in the RunParameters.xml file. It also creates a move.txt file containing the run location.
-
-- q_scrape.py: A Python script that checks the average Q30 and error rate of the sequencing run to ensure they meet the minimum thresholds before launching the pipeline. It creates a qc.pass file if the quality check is successful.
-
-The project streamlines the process of generating and managing samplesheets for Illumina sequencing runs, enabling faster and more efficient execution of sequencing pipelines.
-
-## Requirements
-### Software Dependencies
-To run the project, ensure that you have the following software installed:
-
-Python 3.x: The project's scripts are written in Python 3, so a compatible version is required. Download and install Python 3.x from [here](https://www.python.org/downloads/).
-
-- openpyxl: A Python library used for reading and writing Excel files. Install it using pip:
-```
-pip install openpyxl
-```
-- Illumina InterOp: A Python library for parsing Illumina run metrics. Install it using pip:
-```
-pip install illumina-interop
-```
-- Virtual environment (optional): A virtual environment allows you to manage Python dependencies for the project separately, without affecting system-wide packages. Install virtualenv using pip:
-```
-pip install virtualenv
-```
-### Hardware Requirements
-The hardware requirements for this project will largely depend on the size and complexity of the input files and the number of concurrent sequencing runs being processed. However, a modern computer with a multi-core processor, sufficient RAM (at least 4GB), and ample storage space should be adequate for most use cases.
-
-### Configuration File
-The project relies on a configuration file named settings.xml that stores information about the project, virtual environment path, and run directories. Make sure this file is properly configured according to your system and project setup.
-
-### Input Files
-Ensure that the input Excel files containing sample information are formatted correctly and placed in the appropriate directory as specified in settings.xml.
+- Python 3.x
+- Docker (for Docker deployment)
+- Libraries: Flask, SQLite, xml, csv, DNAnexus, and other dependencies
 
 ## Installation
 1. Clone the repository: Clone the project's repository to your local machine by running the following command in your terminal or command prompt:
@@ -51,33 +27,37 @@ git clone https://gitlab.com/gdoy/dnanexus_illumina_automator.git
 ```
 If you don't have Git installed, you can download the repository as a ZIP file and extract it.
 
-2. Create a virtual environment (optional): If you prefer using a virtual environment to manage the project's dependencies, navigate to the project's root directory and create a new virtual environment by running:
+2. Install the required libraries.
 ```
-virtualenv venv
+pip install -r requirements.txt
 ```
-3. Activate the virtual environment:
 
-On Linux and macOS:
-```
-source venv/bin/activate
-```
-On Windows:
-```
-venv\Scripts\activate
-```
-4. Install Python dependencies: Install the required Python libraries by running the following command:
-```
-pip install openpyxl illumina-interop
-```
-5. Configure settings.xml: Open the settings.xml file in a text editor and update the values for <project>, <virtual_env>, and <run_directory> according to your system and project setup.
+# Docker Deployment
 
-6. Prepare input files: Ensure that the input Excel files containing sample information are formatted correctly and placed in the appropriate directory as specified in settings.xml.
+1. Build the Docker image by running the following command from the root of your project directory:
+```
+docker build -t nexus_automator .
+```
 
-7. Run the project: You can now run the main script monitor.py from your terminal or command prompt:
+2. Run a Docker container based on your newly created image:
 ```
-python3 monitor.py
+docker run -p 5000:5000 nexus-automator
 ```
-The script will start monitoring the specified run directory, generate SampleSheets, poll for RTA completion, and launch the pipeline using create_inputs.py.
+
+3. Access the dashboard by navigating to http://localhost:5000 in your web browser.
+
+## Usage
+
+1. Configure the main.py main() function with the appropriate directories and database information.
+2. Run monitor.py to start the pipeline monitoring process.
+
+## Scripts Description
+
+- monitor.py: Monitors a technical directory for changes, generates SampleSheets, checks for completion of RTA, and launches a pipeline via a Python script.
+- q_scrape.py: Checks if Q30 and error rate exceed a minimum threshold before launching the pipeline, extracts data from InterOp files, parses XML files, updates the SQLite database, and generates plots.
+- ssgen.py: Moves samplesheets to their corresponding run folder based on RunParameters.xml and generates correctly formatted samplesheets.
+- ssmove.py: Moves csv files to the output directory based on a search string that matches the ExperimentName in RunParameters.xml.
+- dashboard.py: Defines a Flask web application that serves a dashboard page displaying run status and metrics retrieved from the SQLite database.
 
 ## Workflow
 ![Image](workflow.png)

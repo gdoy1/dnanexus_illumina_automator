@@ -156,7 +156,7 @@ def extract_data_for_scatter_plot(run_folder):
 
 def main():
     output_dir = sys.argv[1]
-    run_id = int(sys.argv[3])
+    run_id = int(sys.argv[2])
 
     if not check_rta_complete(output_dir):
         print("RTAComplete.txt not found in output directory. Aborting...")
