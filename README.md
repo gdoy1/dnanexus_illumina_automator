@@ -85,6 +85,15 @@ By using this project, you agree to the terms of the [MIT License](https://opens
 
 ## Testing
 ### 2022
+
+Testing is taking place on the entire 2022 archived data for the NovaSeq.
+
 - SampleSheet generation: 96 somatic runs detected.
 
 ![Image](testing1.png)
+
+- Matching to correct directories: 92/96 runs were successfully matched to the correct L drive location based on the RunParameters.xml.
+* 2216541_2216542 - Run was loaded on the NextSeq and was not available in the testing dataset.
+* 2200732 - Worklist deleted.
+* 2204077_2204094 - Run was loaded on the NextSeq and was not available in the testing dataset.
+* 2204533_2204558 - Run was loaded on the NextSeq and was not available in the testing dataset.
