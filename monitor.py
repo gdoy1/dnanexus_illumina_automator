@@ -16,7 +16,6 @@ def load_config():
     with open("config.yaml", "r") as config_file:
         return yaml.safe_load(config_file)
 
-
 config = load_config()
 DB_PATH = config['db_path']
 SEARCH_PATH = config['search_path']
@@ -24,7 +23,7 @@ RUN_DIR = config['run_dir']
 DNANEXUS_PROJECT_ID_DEMUX = config['dnanexus_project_id_demux']
 DNANEXUS_PROJECT_ID_ANALYSIS = config['dnanexus_project_id_analysis']
 DX_API_KEY = os.environ.get('DX_API_KEY')
-SLACK_BOT_TOKEN = config['slack_bot_token']
+SLACK_BOT_TOKEN = os.environ.get('SLACK_BOT_TOKEN')
 SLACK_CHANNEL = config['slack_channel']
 
 def setup_database():
@@ -137,7 +136,7 @@ def get_run_metrics(run_id):
     cursor = conn.cursor()
 
     cursor.execute('''
-        SELECT q30, error_rate, yield, cluster_pf
+        SELECT q30, error_rate, yield, cluster_pf, cluster_density
         FROM run_metrics
         WHERE run_id = ?
     ''', (run_id,))
@@ -150,7 +149,8 @@ def get_run_metrics(run_id):
             'q30': result[0],
             'error_rate': result[1],
             'yield': result[2],
-            'cluster_pf': result[3]
+            'cluster_pf': result[3],
+            'cluster_density': result[4]
         }
     else:
         return None
@@ -171,10 +171,11 @@ def post_slack_image(channel, image_path, title):
     try:
         if os.path.exists(image_path):
             with open(image_path, "rb") as file:
-                response = client.files_upload_v2(
+                response = client.files_upload(
                     channels=channel,
                     file=file,
-                    title=title
+                    title=title,
+                    filename=os.path.basename(image_path)
                 )
             if response['ok']:
                 print(f"Image '{title}' uploaded to Slack channel {channel}")
@@ -228,6 +229,13 @@ def process_stage1(dirpath, file):
     # Process the file
     subprocess.run(['python3', 'ssgen.py', file], check=True)
 
+    # Check if SampleSheet.csv exists in the directory
+    samplesheet_path = os.path.join(dirpath, "SampleSheet.csv")
+    if not os.path.exists(samplesheet_path):
+        print(f"SampleSheet.csv was not generated correctly in: {dirpath}. Skipping the directory.")
+        send_slack_message(SLACK_CHANNEL, f':x: *SampleSheet.csv not generated correctly: {dirpath}* \n\n Please manually generate this run before continuing.')
+        return
+
     # Extract the run_id from the directory name
     basename = os.path.normpath(dirpath).split(os.sep)[-1]
     run_id_match = re.search(r"(\d+)", basename)
@@ -235,7 +243,7 @@ def process_stage1(dirpath, file):
         run_id = run_id_match.group()
     else:
         print(f"Failed to extract run_id from directory name: {dirpath}. Skipping the directory.")
-        send_slack_message(SLACK_CHANNEL, f':x: *Failed to extract the run_id: {dirpath}* \n\n Please manually verify this run before continuing.')
+        send_slack_message(SLACK_CHANNEL, f':x: *Failed to extract the run_id from foldername: {dirpath}* \n\n Please manually correct this run before continuing.')
         return
 
     # Update the status in the database
@@ -243,6 +251,7 @@ def process_stage1(dirpath, file):
 
     # Send a Slack message after completing Stage 1
     send_slack_message(SLACK_CHANNEL, f'*New sequencing run folder detected: {dirpath}* \n\n SampleSheet has been generated :page_facing_up:')
+
 
 def process_stage2(dirpath, file):
     '''Move the SampleSheets to the correct location before dxstream begins'''
@@ -258,7 +267,7 @@ def process_stage2(dirpath, file):
 
     if output_dir is not None:
         update_run_status(dirpath, 3, 'RTA in progress')
-        send_slack_message(SLACK_CHANNEL, f':dna: *RTA is currently in progress: {run_id}* ')
+        send_slack_message(SLACK_CHANNEL, f':dna: *RTA is currently in progress: {run_id}* \n\n The current run directory is: {output_dir}')
     else:
         print(f'Output directory not found for {dirpath} after running ssmove.py. Skipping the update for this stage.')
         send_slack_message(SLACK_CHANNEL, f':x: *Failed to find the corresponding run directory: {dirpath}*: \n\n Please manually verify this run before continuing.')
@@ -279,11 +288,11 @@ def process_stage3(dirpath, file):
         if job_state == 'done':
             print(f"Demultiplex for run {run_id} is complete. Proceeding to analysis.")
             update_run_status(dirpath, 4, 'Demultiplexing complete', job_id=job_id)
-            send_slack_message(SLACK_CHANNEL, f':white_check_mark: *Demultiplex complete: {run_id}* ')
+            send_slack_message(SLACK_CHANNEL, f':white_check_mark: *Demultiplex complete: {run_id}* \n\n ```{job_id}```')
         else:
             print(f"Demultiplex for {run_id} is not complete. Current state: {job_state}")
             update_run_status(dirpath, 3, 'Demultiplex in progress', job_id=job_id)
-            send_slack_message(SLACK_CHANNEL, f':hourglass: *Demultiplex is currently in progress: {run_id}* ')
+            send_slack_message(SLACK_CHANNEL, f':hourglass: *Demultiplex is currently in progress: {run_id}* \n\n ```{job_id}```')
     else:
         print(f'RTA in progress: {dirpath}')
 
@@ -308,10 +317,11 @@ def process_stage4(dirpath, file):
 
     send_slack_message(SLACK_CHANNEL, f':partying_face: *Quality control check PASSED: {run_id}* \n\n Run level metrics: \n\n Q30: {q30}%\n Error rate: {er}%\n Cluster PF: {cpf}%\n Cluster density: {cden} K/mm2\n Yield: {yie} Gb')
 
-    # Post images to Slack
-    image_path = f"/largedata/share/George/dnanexus_illumina_automator/static/qscore_histograms/qscore_histogram_{run_id}.png"
+    # Post images to Slack using relative paths
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    image_path = os.path.join(script_dir, 'static', 'qscore_histograms', f'qscore_histogram_{run_id}.png')
     post_slack_image(SLACK_CHANNEL, image_path, f"Q-score histogram for run {run_id}")
-    image_path = f"/largedata/share/George/dnanexus_illumina_automator/static/scatter_plots/scatter_plot_{run_id}.png"
+    image_path = os.path.join(script_dir, 'static', 'scatter_plots', f'scatter_plot_{run_id}.png')
     post_slack_image(SLACK_CHANNEL, image_path, f"Scatter plot for run {run_id}")
 
 def process_stage5(dirpath, file):
@@ -326,10 +336,10 @@ def process_stage5(dirpath, file):
     if run_metrics and run_metrics['q30'] > 80 and run_metrics['error_rate'] < 2:
         #subprocess.run(['yes', 'Y'], check=True)
         #subprocess.run(['python3', '/projects/dnanexus/tso500-prepare-inputs/create_inputs.py', output_dir, '-s', os.path.join(output_dir, 'SampleSheet.csv')], check=True)
-        print('python3 ' + ' /projects/dnanexus/tso500-prepare-inputs/create_inputs.py ' + output_dir + ' -s ' + os.path.join(output_dir, 'SampleSheet.csv'))
+        command = 'python3 ' + '/projects/dnanexus/tso500-prepare-inputs/create_inputs.py ' + output_dir + ' -s ' + os.path.join(output_dir, 'SampleSheet.csv')
         print(f'Pipeline launched for run: {run_id}')
         update_run_status(dirpath, 6, 'Pipeline launched')
-        send_slack_message(SLACK_CHANNEL, f':computer: *Pipeline has been launched: {run_id}* ')
+        send_slack_message(SLACK_CHANNEL, f':computer: *Pipeline has been launched: {run_id}* \n\n ``` {command} ```')
     else:
         print(f'Run: {run_id} has failed quality control and cannot automatically be launched. Please check this run manually before proceeding.')
         send_slack_message(SLACK_CHANNEL, f':x: *Failed to find the corresponding run directory: {dirpath}*: \n\n Please manually verify this run before continuing.')
@@ -351,12 +361,15 @@ def process_stage6(dirpath, file):
     if job_state == 'done':
         print(f"Analysis for run {run_id} is complete.")
         update_run_status(dirpath, 7, 'Analysis complete', analysis_id=job_id)
+        send_slack_message(SLACK_CHANNEL, f':star2: *Pipeline has completed successfully: {run_id}* \n\n ```{job_id}```')
     elif job_state == 'failed':
         print(f"Analysis for run {run_id} failed.")
         update_run_status(dirpath, 0, 'FAILED', analysis_id=job_id)
+        send_slack_message(SLACK_CHANNEL, f':x: *Pipeline has failed: {run_id}* \n\n ```{job_id}```')
     else:
         print(f"Analysis for {run_id} is not complete. Current state: {job_state}")
         update_run_status(dirpath, 6, 'Pipeline in progress', analysis_id=job_id)
+        send_slack_message(SLACK_CHANNEL, f':hourglass_flowing_sand: *Pipeline is currently in progress: {run_id}* \n\n ```{job_id}```')
 
 def main():
 # Create the necessary SQLite structure

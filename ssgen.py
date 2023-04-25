@@ -63,7 +63,7 @@ def generate_roche_combined_csv(workbook, excel_file):
             return None
 
         output_dir = os.path.dirname(excel_file)
-        file_name = extracted_value + "_combined.csv"
+        file_name = 'SampleSheet.csv'  # Changed the file_name to 'SampleSheet.csv'
         write_csv(worksheet, output_dir, file_name)
         print("Roche combined csv generated: {}.".format(excel_file))
         return file_name
@@ -85,7 +85,7 @@ def call_split_somatic_samplesheet_script(combined_csv_path):
 def generate_tso500_samplesheets(workbook, excel_file):
     """Generate the tso500 samplesheets with correct formatting."""
     suffix_map = {
-        'TSO500 Combined Loading': '_combined',
+        'TSO500 Combined Loading': 'SampleSheet',
         'TSO500 DNA Loading': '_DNA',
         'TSO500 RNA  Loading': '_RNA'
     }
@@ -97,7 +97,10 @@ def generate_tso500_samplesheets(workbook, excel_file):
             continue
 
         worksheet = workbook[sheet_name]
-        file_name = worksheet['B4'].value + suffix_map[sheet_name] + '.csv'
+        if sheet_name == 'TSO500 Combined Loading':
+            file_name = suffix_map[sheet_name] + '.csv'
+        else:
+            file_name = worksheet['B4'].value + suffix_map[sheet_name] + '.csv'
         write_csv(worksheet, output_dir, file_name)
 
 def main():

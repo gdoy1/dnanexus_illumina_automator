@@ -1,8 +1,9 @@
 # dnanexus_illumina_automator
 
 ## Description
-This repository contains a collection of Python scripts designed to automate the processing of DNA sequencing data. The pipeline polls a technical directory for changes, generates SampleSheets, checks for completion of Real-Time Analysis (RTA), and launches a pipeline via a Python script. It interacts with a SQLite database to track the progress of each run folder through the pipeline and scrapes the DNAnexus API to monitor the status of demultiplexing and analysis.
+This repository contains a collection of Python scripts designed to automate the processing of DNA sequencing data. The pipeline polls a technical directory for changes, generates SampleSheets, checks for completion of Real-Time Analysis (RTA), and launches a pipeline via a Python script. It interacts with a SQLite database to track the progress of each run folder through the pipeline and scrapes the DNAnexus API to monitor the status of demultiplexing and analysis. It also features a Slack bot integration that posts updates to a specified channel as each stage progresses.
 
+![Image](slack.png)
 ![Image](dashboard.png)
 
 ## Features
@@ -15,11 +16,13 @@ This repository contains a collection of Python scripts designed to automate the
 - Check if Q30 and error rate exceed a minimum threshold before launching the pipeline
 - Generate Q-score histogram plot and scatter plot
 - Serve a dashboard displaying run status and metrics using Flask
+- Slack bot integration to post updates as each stage progresses
 
 ## Requirements
 - Python 3.x
 - Docker (for Docker deployment)
 - Libraries: Flask, SQLite, xml, csv, DNAnexus, and other dependencies
+- OPTIONAL: Slack
 
 ## Installation
 1. Clone the repository: Clone the project's repository to your local machine by running the following command in your terminal or command prompt:
@@ -40,6 +43,7 @@ pip install -r requirements.txt
 1. Before building the Docker image, make sure to set the DX_API_KEY as an environment variable. This allows the script to securely access the DNAnexus API key. You can set it by adding the following line to your .bashrc or .bash_profile file:
 ```
 export DX_API_KEY=your_api_key_here
+export SLACK_BOT_TOKEN=your_slack_bot_api_here
 ```
 
 2. Build the Docker image by running the following command from the root of your project directory:
@@ -77,3 +81,4 @@ By using this project, you agree to the terms of the [MIT License](https://opens
 
 ## Changelog
 1.01 (28/03/2023) - Script now dependent on SQLite checks. Flask dashboard added. DNAnexus polling for demultiplex completion.
+1.02 (25/04/2023) - Slackbot integration to provide real-time updates on run status.
