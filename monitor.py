@@ -373,10 +373,21 @@ def process_stage6(dirpath, file):
 
 def process_stage7(dirpath, file):
     '''Begin the data download'''
-    output_dir = "/path/to/output/dir"
+    run_status = get_run_status(dirpath)
+    output_dir = run_status['output_dir']
     command = ['python3', '/projects/dnanexus/tso500-network-copy/tso_roche-net.py', '-d', '-s', os.path.join(output_dir, 'SampleSheet.csv'), '-r', 'DNA']
-    subprocess.run(command, check=True)
+    # subprocess.run(command, check=True)
     print("Command executed:", " ".join(command))
+    update_run_status(dirpath, 8, 'Download/netcopy in progress')
+
+    # Check for an underscore in dirpath
+    if "_" in os.path.basename(dirpath.rstrip('/')):
+        command = ['python3', '/projects/dnanexus/tso500-network-copy/tso_roche-net.py', '-d', '-s', os.path.join(output_dir, 'SampleSheet.csv'), '-r', 'RNA']
+        # subprocess.run(command, check=True)
+        print("Command executed:", " ".join(command))
+    else:
+        print("Skipping RNA command execution due to no underscore in directory name.")
+
 
 def main():
 # Create the necessary SQLite structure
