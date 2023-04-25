@@ -86,7 +86,7 @@ By using this project, you agree to the terms of the [MIT License](https://opens
 ## Testing
 ### 2022 dataset
 
-Testing is taking place on the entire 2022 archived data for the NovaSeq.
+Testing has taken place on the entire 2022 archived data available for the NovaSeq.
 
 - SampleSheet generation: 96 somatic runs detected.
 
@@ -94,8 +94,9 @@ Testing is taking place on the entire 2022 archived data for the NovaSeq.
 
 - Matching to correct directories: 92/96 runs were successfully matched to the correct L drive location based on the RunParameters.xml.
     * 2216541_2216542 - Run was loaded on the NextSeq and was not available in the testing dataset.
-    * 2200732 - Worklist deleted.
+    * 2200732 - Worklist was deleted.
     * 2204077_2204094 - Run was loaded on the NextSeq and was not available in the testing dataset.
     * 2204533_2204558 - Run was loaded on the NextSeq and was not available in the testing dataset.
 
-- Polling DNAnexus for demultiplex status: All 92 valid runs were successfully matched to a job in DNAnexus.
+- Polling DNAnexus for demultiplex status: 91/92 valid runs were successfully matched to a job in DNAnexus.
+    * 2216088 - NovaSeq failed during this run, and a manual demultiplex was undertaken.
