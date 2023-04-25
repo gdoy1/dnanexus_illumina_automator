@@ -80,5 +80,5 @@ The software is provided "as is" without warranty of any kind, either express or
 By using this project, you agree to the terms of the [MIT License](https://opensource.org/licenses/MIT).
 
 ## Changelog
-1.01 (28/03/2023) - Script now dependent on SQLite checks. Flask dashboard added. DNAnexus polling for demultiplex completion.
-1.02 (25/04/2023) - Slackbot integration to provide real-time updates on run status.
+- 1.01 (28/03/2023) - Script now dependent on SQLite checks. Flask dashboard added. DNAnexus polling for demultiplex completion.
+- 1.02 (25/04/2023) - Slackbot integration to provide real-time updates on run status.
