@@ -40,7 +40,7 @@ pip install -r requirements.txt
 
 ## Docker Deployment
 
-1. Before building the Docker image, make sure to set the DX_API_KEY as an environment variable. This allows the script to securely access the DNAnexus API key. You can set it by adding the following line to your .bashrc or .bash_profile file:
+1. Before building the Docker image, make sure to set the DX_API_KEY and SLACK_BOT_TOKEN as an environment variable. This allows the script to securely access your DNAnexus and Slack API keys. You can set it by adding the following lines to your .bashrc or .bash_profile file:
 ```
 export DX_API_KEY=your_api_key_here
 export SLACK_BOT_TOKEN=your_slack_bot_api_here
