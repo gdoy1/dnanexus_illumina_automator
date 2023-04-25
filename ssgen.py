@@ -91,9 +91,19 @@ def generate_tso500_samplesheets(workbook, excel_file):
     }
 
     output_dir = os.path.dirname(excel_file)
+    dir_name = os.path.basename(output_dir)
+    
+    # Check if the directory name contains an underscore
+    generate_rna = "_" in dir_name
+
     for sheet_name in ['TSO500 Combined Loading', 'TSO500 DNA Loading', 'TSO500 RNA  Loading']:
         if sheet_name not in workbook.sheetnames:
             print("Error: Sheet {} not found in workbook {}. Skipping...".format(sheet_name, excel_file))
+            continue
+
+        # Only generate RNA samplesheet if directory name contains an underscore
+        if not generate_rna and sheet_name == 'TSO500 RNA  Loading':
+            print("Skipping RNA samplesheet generation due to no underscore in directory name.")
             continue
 
         worksheet = workbook[sheet_name]

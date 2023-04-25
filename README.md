@@ -55,7 +55,7 @@ docker build -t nexus_automator .
 
 1. Run a Docker container based on your newly created image:
 ```
-docker run -p 5000:5000 -e DX_API_KEY=$DX_API_KEY nexus_automator
+docker run -p 5000:5000 -e DX_API_KEY=$DX_API_KEY -e SLACK_BOT_TOKEN=$SLACK_BOT_TOKEN nexus_automator
 ```
 
 2. Access the dashboard by navigating to http://localhost:5000 in your web browser.

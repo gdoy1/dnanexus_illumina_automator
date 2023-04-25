@@ -348,8 +348,8 @@ def process_stage5(dirpath, file):
     #update_run_status(dirpath, None, 'Run completed')
 
 def process_stage6(dirpath, file):
-    dnanexus_project_id_analysis = DNANEXUS_PROJECT_ID_ANALYSIS
     '''Begin polling for analysis status using DNAnexus API'''
+    dnanexus_project_id_analysis = DNANEXUS_PROJECT_ID_ANALYSIS
     print(f'Processing Stage 6 (check analysis) in {dirpath}')
     run_status = get_run_status(dirpath)
     run_id = run_status['run_id']
@@ -370,6 +370,13 @@ def process_stage6(dirpath, file):
         print(f"Analysis for {run_id} is not complete. Current state: {job_state}")
         update_run_status(dirpath, 6, 'Pipeline in progress', analysis_id=job_id)
         send_slack_message(SLACK_CHANNEL, f':hourglass_flowing_sand: *Pipeline is currently in progress: {run_id}* \n\n ```{job_id}```')
+
+def process_stage7(dirpath, file):
+    '''Begin the data download'''
+    output_dir = "/path/to/output/dir"
+    command = ['python3', '/projects/dnanexus/tso500-network-copy/tso_roche-net.py', '-d', '-s', os.path.join(output_dir, 'SampleSheet.csv'), '-r', 'DNA']
+    subprocess.run(command, check=True)
+    print("Command executed:", " ".join(command))
 
 def main():
 # Create the necessary SQLite structure
@@ -402,6 +409,8 @@ def main():
                 process_stage5(dirpath, file)
             elif run_status['stage'] == 6:
                 process_stage6(dirpath, file)
+            elif run_status['stage'] == 7:
+                process_stage7(dirpath, file)
 
         update_last_check() # Update the database to reflect check has taken place
         print('Loop complete. Repeating...')
