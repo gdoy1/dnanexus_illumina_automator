@@ -7,6 +7,7 @@ import openpyxl
 import re
 import dxpy
 import pytz
+import slack_sdk
 from datetime import datetime
 import yaml
 
@@ -23,6 +24,8 @@ RUN_DIR = config['run_dir']
 DNANEXUS_PROJECT_ID_DEMUX = config['dnanexus_project_id_demux']
 DNANEXUS_PROJECT_ID_ANALYSIS = config['dnanexus_project_id_analysis']
 DX_API_KEY = os.environ.get('DX_API_KEY')
+SLACK_BOT_TOKEN = config['slack_bot_token']
+SLACK_CHANNEL = config['slack_channel']
 
 def setup_database():
     conn = sqlite3.connect(DB_PATH)
@@ -152,6 +155,35 @@ def get_run_metrics(run_id):
     else:
         return None
 
+def send_slack_message(channel, text):
+    client = slack_sdk.WebClient(token=SLACK_BOT_TOKEN)
+    try:
+        response = client.chat_postMessage(channel=channel, text=text)
+        if response['ok']:
+            print(f"Message sent to Slack channel {channel}: {text}")
+        else:
+            print(f"Failed to send message to Slack channel {channel}: {response['error']}")
+    except Exception as e:
+        print(f"Error sending Slack message: {e}")
+
+def post_slack_image(channel, image_path, title):
+    client = slack_sdk.WebClient(token=SLACK_BOT_TOKEN)
+    try:
+        if os.path.exists(image_path):
+            with open(image_path, "rb") as file:
+                response = client.files_upload_v2(
+                    channels=channel,
+                    file=file,
+                    title=title
+                )
+            if response['ok']:
+                print(f"Image '{title}' uploaded to Slack channel {channel}")
+            else:
+                print(f"Failed to upload image '{title}' to Slack channel {channel}: {response['error']}")
+        else:
+            print(f"Image '{title}' not found: {image_path}")
+    except Exception as e:
+        print(f"Error uploading Slack image: {e}")
 
 def find_new_files(dirpath):
     return glob.glob(os.path.join(dirpath, '*.xlsx'))
@@ -203,17 +235,33 @@ def process_stage1(dirpath, file):
         run_id = run_id_match.group()
     else:
         print(f"Failed to extract run_id from directory name: {dirpath}. Skipping the directory.")
+        send_slack_message(SLACK_CHANNEL, f':x: *Failed to extract the run_id: {dirpath}* \n\n Please manually verify this run before continuing.')
         return
 
     # Update the status in the database
     update_run_status(dirpath, 2, 'SampleSheet generated', run_id)
 
+    # Send a Slack message after completing Stage 1
+    send_slack_message(SLACK_CHANNEL, f'*New sequencing run folder detected: {dirpath}* \n\n SampleSheet has been generated :page_facing_up:')
+
 def process_stage2(dirpath, file):
     '''Move the SampleSheets to the correct location before dxstream begins'''
     print(f'Processing Stage 2 in {dirpath}')
-    run_id = get_run_status(dirpath)['run_id']
+    run_status = get_run_status(dirpath)
+    run_id = run_status['run_id']
+
     subprocess.run(['python3', 'ssmove.py', file, str(run_id)], check=True)
-    update_run_status(dirpath, 3, 'RTA in progress')
+
+    # Refresh run_status after running ssmove.py
+    run_status = get_run_status(dirpath)
+    output_dir = run_status['output_dir']
+
+    if output_dir is not None:
+        update_run_status(dirpath, 3, 'RTA in progress')
+        send_slack_message(SLACK_CHANNEL, f':dna: *RTA is currently in progress: {run_id}* ')
+    else:
+        print(f'Output directory not found for {dirpath} after running ssmove.py. Skipping the update for this stage.')
+        send_slack_message(SLACK_CHANNEL, f':x: *Failed to find the corresponding run directory: {dirpath}*: \n\n Please manually verify this run before continuing.')
 
 def process_stage3(dirpath, file):
     dnanexus_project_id_demux = DNANEXUS_PROJECT_ID_DEMUX
@@ -231,9 +279,11 @@ def process_stage3(dirpath, file):
         if job_state == 'done':
             print(f"Demultiplex for run {run_id} is complete. Proceeding to analysis.")
             update_run_status(dirpath, 4, 'Demultiplexing complete', job_id=job_id)
+            send_slack_message(SLACK_CHANNEL, f':white_check_mark: *Demultiplex complete: {run_id}* ')
         else:
             print(f"Demultiplex for {run_id} is not complete. Current state: {job_state}")
             update_run_status(dirpath, 3, 'Demultiplex in progress', job_id=job_id)
+            send_slack_message(SLACK_CHANNEL, f':hourglass: *Demultiplex is currently in progress: {run_id}* ')
     else:
         print(f'RTA in progress: {dirpath}')
 
@@ -246,6 +296,23 @@ def process_stage4(dirpath, file):
 
     subprocess.run(['python3', 'q_scrape.py', output_dir, str(run_status['run_id'])], check=True)
     update_run_status(dirpath, 5, 'QC PASS')
+
+    # Pass data to Slack
+    run_id = run_status['run_id']
+    run_metrics = get_run_metrics(run_id)
+    q30 = round(run_metrics.get('q30', 'N/A'), 2)
+    er = round(run_metrics.get('error_rate', 'N/A'), 2)
+    cpf = round(run_metrics.get('cluster_pf', 'N/A'), 2)
+    cden = round(run_metrics.get('cluster_density', 'N/A'), 2)
+    yie = round(run_metrics.get('yield', 'N/A'), 2)
+
+    send_slack_message(SLACK_CHANNEL, f':partying_face: *Quality control check PASSED: {run_id}* \n\n Run level metrics: \n\n Q30: {q30}%\n Error rate: {er}%\n Cluster PF: {cpf}%\n Cluster density: {cden} K/mm2\n Yield: {yie} Gb')
+
+    # Post images to Slack
+    image_path = f"/largedata/share/George/dnanexus_illumina_automator/static/qscore_histograms/qscore_histogram_{run_id}.png"
+    post_slack_image(SLACK_CHANNEL, image_path, f"Q-score histogram for run {run_id}")
+    image_path = f"/largedata/share/George/dnanexus_illumina_automator/static/scatter_plots/scatter_plot_{run_id}.png"
+    post_slack_image(SLACK_CHANNEL, image_path, f"Scatter plot for run {run_id}")
 
 def process_stage5(dirpath, file):
     '''Ensure the QC is valid before launching analysis'''
@@ -262,8 +329,10 @@ def process_stage5(dirpath, file):
         print('python3 ' + ' /projects/dnanexus/tso500-prepare-inputs/create_inputs.py ' + output_dir + ' -s ' + os.path.join(output_dir, 'SampleSheet.csv'))
         print(f'Pipeline launched for run: {run_id}')
         update_run_status(dirpath, 6, 'Pipeline launched')
+        send_slack_message(SLACK_CHANNEL, f':computer: *Pipeline has been launched: {run_id}* ')
     else:
         print(f'Run: {run_id} has failed quality control and cannot automatically be launched. Please check this run manually before proceeding.')
+        send_slack_message(SLACK_CHANNEL, f':x: *Failed to find the corresponding run directory: {dirpath}*: \n\n Please manually verify this run before continuing.')
         return
 
     #update_run_status(dirpath, None, 'Run completed')
@@ -322,6 +391,7 @@ def main():
                 process_stage6(dirpath, file)
 
         update_last_check() # Update the database to reflect check has taken place
+        print('Loop complete. Repeating...')
         time.sleep(30)  # Check for new directories every 30 seconds
 
 if __name__ == '__main__':

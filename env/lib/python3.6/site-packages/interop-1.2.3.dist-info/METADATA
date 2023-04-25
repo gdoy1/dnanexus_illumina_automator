@@ -1,0 +1,25 @@
+Metadata-Version: 2.1
+Name: interop
+Version: 1.2.3
+Summary: The Illumina InterOp libraries are a set of common routines used for reading InterOp metric files
+                   produced by Illumina sequencers. These libraries are backwards compatible and capable of supporting
+                   prior releases of the software, with one exception: GA systems have been excluded.
+Home-page: https://github.com/Illumina/interop
+Maintainer: Illumina Inc.
+License: GPL
+Download-URL: https://github.com/Illumina/interop/releases/latest
+Keywords: Illumina sequencer HiSeqX HiSeq NextSeq MiniSeq NovaSeq MiSeq SBS genome
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 3
+Classifier: Topic :: Scientific/Engineering :: Bio-Informatics
+Description-Content-Type: text/plain
+Requires-Dist: numpy (==1.16.6) ; python_version < "3.5"
+Requires-Dist: numpy (>=1.16.6) ; python_version >= "3.5"
+
+The Illumina InterOp libraries are a set of common routines used for reading InterOp metric files
+produced by Illumina sequencers. These libraries are backwards compatible and capable of supporting
+prior releases of the software, with one exception: GA systems have been excluded.
+

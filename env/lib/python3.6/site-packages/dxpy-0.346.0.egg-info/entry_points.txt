@@ -1,0 +1,6 @@
+[console_scripts]
+dx = dxpy.scripts.dx:main
+dx-app-wizard = dxpy.scripts.dx_app_wizard:main
+dx-build-app = dxpy.scripts.dx_build_app:main
+dx-build-applet = dxpy.scripts.dx_build_applet:main
+

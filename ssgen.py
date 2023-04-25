@@ -30,20 +30,23 @@ def check_hcap_sheet(workbook):
 
 def write_csv(sheet, output_dir, file_name):
     """Write out to csv file."""
-    with open(os.path.join(output_dir, file_name), "w", newline="") as csvfile:
-        csvwriter = csv.writer(csvfile)
-        for row in sheet.iter_rows(values_only=True):
-            if not all(cell is None or cell == "" for cell in row):
-                if "N/A" in row:
-                    print("Error: N/A value found in sheet {}. Skipping...".format(sheet.title))
-                    continue
-                formatted_row = []
-                for cell in row:
-                    if isinstance(cell, datetime):
-                        formatted_row.append(cell.strftime('%d/%m/%Y'))
-                    else:
-                        formatted_row.append(cell)
-                csvwriter.writerow(formatted_row)
+    try:
+        with open(os.path.join(output_dir, file_name), "w", newline="") as csvfile:
+            csvwriter = csv.writer(csvfile)
+            for row in sheet.iter_rows(values_only=True):
+                if not all(cell is None or cell == "" for cell in row):
+                    if "N/A" in row:
+                        print("Error: N/A value found in sheet {}. Skipping...".format(sheet.title))
+                        continue
+                    formatted_row = []
+                    for cell in row:
+                        if isinstance(cell, datetime):
+                            formatted_row.append(cell.strftime('%d/%m/%Y'))
+                        else:
+                            formatted_row.append(cell)
+                    csvwriter.writerow(formatted_row)
+    except FileNotFoundError:
+        print("Error: Unable to write to file {}. Skipping...".format(file_name))
 
 def generate_roche_combined_csv(workbook, excel_file):
     """Create the combined csv required for Roche samplesheet."""

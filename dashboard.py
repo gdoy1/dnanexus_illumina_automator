@@ -1,14 +1,19 @@
 from flask import Flask, render_template
 import sqlite3
 import base64
-# from io import BytesIO
-# from PIL import Image, UnidentifiedImageError
+import yaml
 
 app = Flask(__name__)
-DB_PATH = 'db/pipemanager.db'
+CONFIG_PATH = 'config.yaml'
+
+def get_config():
+    with open(CONFIG_PATH, 'r') as f:
+        config = yaml.safe_load(f)
+    return config
 
 def get_run_status_data():
-    conn = sqlite3.connect(DB_PATH)
+    db_path = get_config()['db_path']
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM run_status')
     data = cursor.fetchall()
@@ -16,7 +21,8 @@ def get_run_status_data():
     return data
 
 def get_run_metrics_data():
-    conn = sqlite3.connect(DB_PATH)
+    db_path = get_config()['db_path']
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM run_metrics')
     data = cursor.fetchall()
@@ -24,7 +30,8 @@ def get_run_metrics_data():
     return data
 
 def get_last_check():
-    conn = sqlite3.connect(DB_PATH)
+    db_path = get_config()['db_path']
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
     cursor.execute("SELECT timestamp FROM last_check WHERE id = 1")
@@ -38,7 +45,8 @@ def get_last_check():
         return None
 
 def get_image_paths(run_id):
-    conn = sqlite3.connect(DB_PATH)
+    db_path = get_config()['db_path']
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute("SELECT qscore_histogram, scatter_plot FROM run_metrics WHERE run_id = ?", (run_id,))
     result = cursor.fetchone()
