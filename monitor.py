@@ -273,8 +273,8 @@ def process_stage2(dirpath, file):
         send_slack_message(SLACK_CHANNEL, f':x: *Failed to find the corresponding run directory: {dirpath}*: \n\n Please manually verify this run before continuing.')
 
 def process_stage3(dirpath, file):
-    dnanexus_project_id_demux = DNANEXUS_PROJECT_ID_DEMUX
     '''Check RTA has completed, then begin polling for demultiplex status using DNAnexus API'''
+    dnanexus_project_id_demux = DNANEXUS_PROJECT_ID_DEMUX
     print(f'Processing Stage 3 (demultiplex) in {dirpath}')
     run_status = get_run_status(dirpath)
     run_id = run_status['run_id']
@@ -298,7 +298,7 @@ def process_stage3(dirpath, file):
 
 
 def process_stage4(dirpath, file):
-    '''Run q_scrape after demultiplex is complete'''
+    '''Run q_scrape to verify QC after demultiplex is complete'''
     print(f'Processing Stage 4 (QC checking) in {dirpath}')
     run_status = get_run_status(dirpath)
     output_dir = run_status['output_dir']
@@ -325,7 +325,7 @@ def process_stage4(dirpath, file):
     post_slack_image(SLACK_CHANNEL, image_path, f"Scatter plot for run {run_id}")
 
 def process_stage5(dirpath, file):
-    '''Ensure the QC is valid before launching analysis'''
+    '''Launch analysis pipeline'''
     print(f'Processing Stage 5 (launch analysis) in {dirpath}')
     run_status = get_run_status(dirpath)
     output_dir = run_status['output_dir']
@@ -374,15 +374,17 @@ def process_stage6(dirpath, file):
 def process_stage7(dirpath, file):
     '''Begin the data download'''
     run_status = get_run_status(dirpath)
+    run_id = run_status['run_id']
     output_dir = run_status['output_dir']
-    command = ['python3', '/projects/dnanexus/tso500-network-copy/tso_roche-net.py', '-d', '-s', os.path.join(output_dir, 'SampleSheet.csv'), '-r', 'DNA']
+    command = ['python3', '/projects/dnanexus/tso500-network-copy/tso_roche-net.py', '-dn', '-s', os.path.join(output_dir, 'SampleSheet.csv'), '-r', 'DNA']
     # subprocess.run(command, check=True)
     print("Command executed:", " ".join(command))
     update_run_status(dirpath, 8, 'Download/netcopy in progress')
+    send_slack_message(SLACK_CHANNEL, f':floppy_disk: *Download/netcopy is in progress: {run_id}* \n\n ```{command}```')
 
     # Check for an underscore in dirpath
     if "_" in os.path.basename(dirpath.rstrip('/')):
-        command = ['python3', '/projects/dnanexus/tso500-network-copy/tso_roche-net.py', '-d', '-s', os.path.join(output_dir, 'SampleSheet.csv'), '-r', 'RNA']
+        command = ['python3', '/projects/dnanexus/tso500-network-copy/tso_roche-net.py', '-dn', '-s', os.path.join(output_dir, 'SampleSheet.csv'), '-r', 'RNA']
         # subprocess.run(command, check=True)
         print("Command executed:", " ".join(command))
     else:
@@ -425,7 +427,7 @@ def main():
 
         update_last_check() # Update the database to reflect check has taken place
         print('Loop complete. Repeating...')
-        time.sleep(30)  # Check for new directories every 30 seconds
+        time.sleep(30)  # Check for new directories every 30 seconds - CHANGE TO MORE REASONABLE NUMBER
 
 if __name__ == '__main__':
     main()

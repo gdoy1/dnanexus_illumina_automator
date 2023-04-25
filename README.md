@@ -82,3 +82,9 @@ By using this project, you agree to the terms of the [MIT License](https://opens
 ## Changelog
 - 1.01 (28/03/2023) - Script now dependent on SQLite checks. Flask dashboard added. DNAnexus polling for demultiplex completion.
 - 1.02 (25/04/2023) - Slackbot integration to provide real-time updates on run status.
+
+## Testing
+### 2022
+- SampleSheet generation: 96 somatic runs detected.
+
+![Image](testing1.png)
